@@ -1,18 +1,43 @@
 // Unified Data Service - Single source of truth for all XMRT data
 export interface MiningStats {
-  hashRate: number;
-  validShares: number;
+  hash: number;
+  identifier: string;
+  lastHash: number;
   totalHashes: number;
-  amountDue: number;
-  amountPaid: number;
-  isOnline: boolean;
-  lastUpdate: Date;
-  workerContext?: {
+  validShares: number;
+  invalidShares: number;
+  amtDue: string;
+  amtPaid: string;
+  txnCount: number;
+  isDemo?: boolean;
+  isInactive?: boolean;
+  demoNote?: string;
+  poolContext?: {
+    poolHashrate: number;
+    connectedMiners: number;
+    networkDifficulty: number;
+    blockHeight: number;
+  };
+  workerContext: {
     canIdentifyWorker: boolean;
     detectedWorker: string | null;
     registrationRequired: boolean;
-    clientIP?: string;
+    clientIP: string;
   };
+  historyData: {
+    hasHistory: boolean;
+    dataPoints?: number;
+    averageHashrate?: number;
+  };
+  paymentsData: {
+    hasPayments: boolean;
+    recentPayments?: any[];
+    totalPayments?: number;
+  };
+  lastUpdate: string;
+  status: 'live' | 'demo' | 'inactive' | 'fallback';
+  walletAddress?: string;
+  error?: string;
 }
 
 export interface UserContext {
@@ -96,13 +121,31 @@ class UnifiedDataService {
       console.log('✅ UnifiedData: Mining stats retrieved');
       
       const miningStats: MiningStats = {
-        hashRate: data.hash || 0,
-        validShares: data.validShares || 0,
+        hash: data.hash || 0,
+        identifier: data.identifier || 'unknown',
+        lastHash: data.lastHash || 0,
         totalHashes: data.totalHashes || 0,
-        amountDue: (data.amtDue || 0) / 1000000000000, // Convert from atomic units
-        amountPaid: (data.amtPaid || 0) / 1000000000000,
-        isOnline: data.lastHash ? ((Date.now() / 1000) - data.lastHash) < 300 : false, // Online if last hash within 5 minutes
-        lastUpdate: new Date()
+        validShares: data.validShares || 0,
+        invalidShares: data.invalidShares || 0,
+        amtDue: data.amtDue || '0',
+        amtPaid: data.amtPaid || '0',
+        txnCount: data.txnCount || 0,
+        isDemo: data.isDemo || false,
+        isInactive: data.isInactive || false,
+        demoNote: data.demoNote,
+        poolContext: data.poolContext,
+        workerContext: data.workerContext || {
+          canIdentifyWorker: false,
+          detectedWorker: null,
+          registrationRequired: true,
+          clientIP: 'unknown'
+        },
+        historyData: data.historyData || { hasHistory: false },
+        paymentsData: data.paymentsData || { hasPayments: false },
+        lastUpdate: data.lastUpdate || new Date().toISOString(),
+        status: data.status || 'demo',
+        walletAddress: data.walletAddress,
+        error: data.error
       };
 
       // Cache the result
@@ -128,14 +171,25 @@ class UnifiedDataService {
       return `${hashrate.toFixed(2)} H/s`;
     };
 
+    const formatXMR = (amount: string): string => {
+      const num = parseFloat(amount);
+      return (num / 1000000000000).toFixed(6); // Convert from atomic units
+    };
+
+    const isOnline = stats.lastHash ? ((Date.now() / 1000) - stats.lastHash) < 300 : false;
+    const statusText = stats.status === 'demo' ? '🟡 Demo Data' : 
+                      stats.status === 'inactive' ? '🟠 Inactive' :
+                      isOnline ? '🟢 Mining (Online)' : '🔴 Idle (Offline)';
+
     return `📊 **Live Mining Statistics (SupportXMR Pool):**
-• **Hash Rate**: ${formatHashrate(stats.hashRate)}
-• **Status**: ${stats.isOnline ? '🟢 Mining (Online)' : '🔴 Idle (Offline)'}
+• **Hash Rate**: ${formatHashrate(stats.hash)}
+• **Status**: ${statusText}
 • **Valid Shares**: ${stats.validShares.toLocaleString()}
 • **Total Hashes**: ${stats.totalHashes.toLocaleString()}
-• **Amount Due**: ${stats.amountDue.toFixed(6)} XMR
-• **Amount Paid**: ${stats.amountPaid.toFixed(6)} XMR
-• **Last Update**: ${stats.lastUpdate.toLocaleTimeString()}`;
+• **Amount Due**: ${formatXMR(stats.amtDue)} XMR
+• **Amount Paid**: ${formatXMR(stats.amtPaid)} XMR
+• **Last Update**: ${new Date(stats.lastUpdate).toLocaleTimeString()}${stats.walletAddress ? `
+• **Wallet**: ${stats.walletAddress}` : ''}`;
   }
 
   // Clear all caches

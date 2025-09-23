@@ -348,7 +348,12 @@ const UnifiedChatInner: React.FC<UnifiedChatProps> = ({
   };
 
   const formatHashrate = (hashrate: number): string => {
-    return unifiedDataService.formatMiningStats({ hashRate: hashrate } as MiningStats).split('\n')[1] || `${hashrate} H/s`;
+    if (hashrate >= 1000000) {
+      return `${(hashrate / 1000000).toFixed(2)} MH/s`;
+    } else if (hashrate >= 1000) {
+      return `${(hashrate / 1000).toFixed(2)} KH/s`;
+    }
+    return `${hashrate.toFixed(2)} H/s`;
   };
 
   // Unified response display with intelligent TTS control

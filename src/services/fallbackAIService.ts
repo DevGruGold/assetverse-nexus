@@ -144,7 +144,7 @@ export class FallbackAIService {
       const contextualPrompt = `As Eliza, XMRT-DAO's AI assistant, provide a helpful response to: "${userInput}"
 
 Context: XMRT-DAO is a privacy-focused decentralized ecosystem. ${context.miningStats ? 
-`User's mining: ${context.miningStats.hashRate || 0} H/s, ${context.miningStats.isOnline ? 'active' : 'inactive'}.` : ''}
+`User's mining: ${context.miningStats.hash || 0} H/s, ${context.miningStats.lastHash && ((Date.now() / 1000) - context.miningStats.lastHash) < 300 ? 'active' : 'inactive'}.` : ''}
 
 Knowledge: ${knowledgeContext}
 

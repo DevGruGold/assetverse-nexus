@@ -338,7 +338,7 @@ ${languageInstruction}
 
 Current Context:
 - User Status: ${userContext?.isFounder ? 'Project Founder' : 'Community Member'}
-${miningStats ? `- Mining Stats: ${miningStats.hashRate || 0} H/s, ${miningStats.validShares || 0} shares` : ''}
+${miningStats ? `- Mining Stats: ${miningStats.hash || 0} H/s, ${miningStats.validShares || 0} shares` : ''}
 ${miningLanguageContext ? `- Mining Context: ${miningLanguageContext.isPersonalContribution ? `Personal contribution detected${miningLanguageContext.workerName ? ` (${miningLanguageContext.workerName})` : ''} - use "your"` : 'Collective mining - use "our"'}` : ''}
 ${webIntelligence ? `- Additional Info: ${webIntelligence}` : ''}
 ${multiStepResults ? `- Analysis: ${multiStepResults}` : ''}
@@ -528,7 +528,7 @@ ${finalInstruction}`;
     // Add real mining data if available
     if (miningStats) {
       response += `**Current Mining Status:**
-Your mining operation is actively running at ${miningStats.hashRate} H/s with ${miningStats.validShares} valid shares submitted. You have ${(miningStats.amountDue || 0).toFixed(6)} XMR pending and ${(miningStats.amountPaid || 0).toFixed(6)} XMR already paid out. The system shows ${miningStats.isOnline ? 'active' : 'idle'} status with ${miningStats.totalHashes.toLocaleString()} total hashes processed.
+Your mining operation is actively running at ${miningStats.hash} H/s with ${miningStats.validShares} valid shares submitted. You have ${(parseFloat(miningStats.amtDue || '0') / 1000000000000).toFixed(6)} XMR pending and ${(parseFloat(miningStats.amtPaid || '0') / 1000000000000).toFixed(6)} XMR already paid out. The system shows ${miningStats.lastHash && ((Date.now() / 1000) - miningStats.lastHash) < 300 ? 'active' : 'idle'} status with ${miningStats.totalHashes.toLocaleString()} total hashes processed.
 
 `;
     } else {

@@ -54,41 +54,98 @@ serve(async (req) => {
   }
 
   try {
-    const minerAddress = '46UxNFuGM2E3UwmZWWJicaRPoRwqwW4byQkaTHkX8yPcVihp91qAVtSFipWUGJJUyTXgzDQtNLf2bsp2DX2qCCgC5mg';
-    const apiUrl = `https://www.supportxmr.com/api/miner/${minerAddress}/stats`;
+    // Get configuration from environment variables
+    const minerAddress = Deno.env.get('MINER_WALLET_ADDRESS') || '46UxNFuGM2E3UwmZWWJicaRPoRwqwW4byQkaTHkX8yPcVihp91qAVtSFipWUGJJUyTXgzDQtNLf2bsp2DX2qCCgC5mg';
+    const poolApiBase = Deno.env.get('POOL_API_URL') || 'https://www.supportxmr.com/api';
+    
+    // Validate wallet address format (basic Monero address validation)
+    if (!minerAddress || minerAddress.length < 90 || !minerAddress.startsWith('4')) {
+      console.log('Invalid miner address format:', minerAddress);
+      return new Response(JSON.stringify({
+        ...getDemoMiningData(),
+        error: 'Invalid wallet address configuration',
+        status: 'error'
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    
+    const apiUrl = `${poolApiBase}/miner/${minerAddress}/stats`;
+    const historyUrl = `${poolApiBase}/miner/${minerAddress}/chart/hashrate`;
+    const paymentsUrl = `${poolApiBase}/miner/${minerAddress}/payments`;
+    const workersUrl = `${poolApiBase}/miner/${minerAddress}/stats/allWorkers`;
 
     console.log('Fetching mining stats from:', apiUrl);
 
     // Try to get real miner data
     let minerData = null;
+    let historyData = null;
+    let paymentsData = null;
     let useDemo = false;
 
     try {
-      const response = await fetch(apiUrl, {
-        headers: {
-          'User-Agent': 'XMRT-DAO/1.0',
-          'Accept': 'application/json',
-        },
-        timeout: 5000,
-      });
+      // Fetch main stats
+      const [statsResponse, historyResponse, paymentsResponse] = await Promise.allSettled([
+        fetch(apiUrl, {
+          headers: {
+            'User-Agent': 'XMRT-DAO/1.0',
+            'Accept': 'application/json',
+          },
+          signal: AbortSignal.timeout(5000),
+        }),
+        fetch(historyUrl, {
+          headers: {
+            'User-Agent': 'XMRT-DAO/1.0',
+            'Accept': 'application/json',
+          },
+          signal: AbortSignal.timeout(5000),
+        }),
+        fetch(paymentsUrl, {
+          headers: {
+            'User-Agent': 'XMRT-DAO/1.0',
+            'Accept': 'application/json',
+          },
+          signal: AbortSignal.timeout(5000),
+        })
+      ]);
 
-      if (response.ok) {
-        const data = await response.json();
-
+      // Process main stats
+      if (statsResponse.status === 'fulfilled' && statsResponse.value.ok) {
+        const data = await statsResponse.value.json();
+        
         // Check if we got meaningful data (not all zeros)
         const hasActivity = data.hash > 0 || data.totalHashes > 0 || data.validShares > 0;
-
+        
         if (hasActivity) {
           minerData = data;
           console.log('Real mining data retrieved successfully');
         } else {
-          console.log('Miner appears inactive - using demo data');
-          useDemo = true;
+          console.log('Miner appears inactive - checking if wallet exists');
+          // If stats are zero, still use the data but mark as inactive
+          minerData = data;
+          minerData.isInactive = true;
         }
       } else {
-        console.log('Mining API error:', response.status);
+        console.log('Mining API error:', statsResponse.status === 'fulfilled' ? statsResponse.value.status : 'Request failed');
         useDemo = true;
       }
+
+      // Process history data
+      if (historyResponse.status === 'fulfilled' && historyResponse.value.ok) {
+        historyData = await historyResponse.value.json();
+        console.log('History data retrieved successfully');
+      } else {
+        console.log('History API unavailable');
+      }
+
+      // Process payments data
+      if (paymentsResponse.status === 'fulfilled' && paymentsResponse.value.ok) {
+        paymentsData = await paymentsResponse.value.json();
+        console.log('Payments data retrieved successfully');
+      } else {
+        console.log('Payments API unavailable');
+      }
+
     } catch (error) {
       console.log('Mining API failed:', error);
       useDemo = true;
@@ -116,13 +173,24 @@ serve(async (req) => {
       clientIP
     };
 
-    // Enhanced response with pool context
+    // Enhanced response with pool context and additional data
     const responseData = {
       ...minerData,
       poolContext: poolStats,
       workerContext,
+      historyData: historyData ? {
+        hasHistory: true,
+        dataPoints: historyData.length || 0,
+        averageHashrate: historyData?.reduce?.((acc, point) => acc + (point[1] || 0), 0) / (historyData?.length || 1) || 0
+      } : { hasHistory: false },
+      paymentsData: paymentsData ? {
+        hasPayments: true,
+        recentPayments: paymentsData.slice?.(0, 5) || [],
+        totalPayments: paymentsData.length || 0
+      } : { hasPayments: false },
       lastUpdate: new Date().toISOString(),
-      status: useDemo ? 'demo' : 'live'
+      status: useDemo ? 'demo' : (minerData?.isInactive ? 'inactive' : 'live'),
+      walletAddress: minerAddress.substring(0, 8) + '...' + minerAddress.slice(-8) // Show partial address for verification
     };
 
     return new Response(JSON.stringify(responseData), {

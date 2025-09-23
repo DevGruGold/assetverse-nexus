@@ -73,8 +73,8 @@ Provide a concise, helpful, and engaging response that acknowledges their input 
     
     // Mining-related queries
     if (input.includes('mining') || input.includes('hash') || input.includes('xmr')) {
-      return context?.miningStats?.isOnline 
-        ? `Great! I can see your mining is active. Your current hashrate is ${context.miningStats.hashRate || 0} H/s. How can I help you optimize your mining setup?`
+      return context?.miningStats?.lastHash 
+        ? `Great! I can see your mining is active. Your current hashrate is ${context.miningStats.hash || 0} H/s. How can I help you optimize your mining setup?`
         : `I notice your miner might be offline. Would you like help troubleshooting your mining setup or checking your configuration?`;
     }
     

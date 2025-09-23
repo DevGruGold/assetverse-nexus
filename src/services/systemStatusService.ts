@@ -125,11 +125,11 @@ export class SystemStatusService {
     try {
       const miningStats = await unifiedDataService.getMiningStats();
       
-      if (miningStats && miningStats.hashRate !== undefined) {
+      if (miningStats && miningStats.hash !== undefined) {
         return {
           name: 'Mining Statistics Proxy',
           status: 'online',
-          details: `Current hashrate: ${miningStats.hashRate} H/s`,
+          details: `Current hashrate: ${miningStats.hash} H/s`,
           lastChecked: new Date(),
           capabilities: [
             'Real-time mining statistics',
