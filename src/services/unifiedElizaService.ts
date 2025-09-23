@@ -451,6 +451,37 @@ Respond as Eliza with your enhanced intelligence and capabilities:`;
   }
 
   // Cleanup resources
+
+  // Wrapper method for backward compatibility with UnifiedChat.tsx
+  static async generateResponse(
+    input: string,
+    options: {
+      context?: ElizaContext;
+      shouldSpeak?: boolean;
+      enableWebAutomation?: boolean;
+      enableGitHubOps?: boolean;
+      enableBrowsing?: boolean;
+    } = {}
+  ): Promise<string> {
+    try {
+      console.log('🔄 generateResponse called - forwarding to processEnhancedInput');
+      
+      const context: ElizaContext = {
+        ...options.context,
+        shouldSpeak: options.shouldSpeak,
+        enableWebAutomation: options.enableWebAutomation,
+        enableGitHubOps: options.enableGitHubOps,
+        enableBrowsing: options.enableBrowsing
+      };
+
+      const result = await this.processEnhancedInput(input, context);
+      return result.response;
+    } catch (error) {
+      console.error('❌ generateResponse error:', error);
+      return this.generateEnhancedFallbackResponse(options.context || {});
+    }
+  }
+
   static async cleanup(): Promise<void> {
     try {
       if (this.playwrightBrowser) {
