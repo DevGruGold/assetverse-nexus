@@ -21,13 +21,15 @@ export interface PoolStats {
   };
 }
 
-// CORS proxy URLs for accessing SupportXMR API
+// XMRT DAO Wallet Address - DO NOT CHANGE
+export const WALLET_ADDRESS = "46UxNFuGM2E3UwmZWWJicaRPoRwqwW4byQkaTHkX8yPcVihp91qAVtSFipWUGJJUyTXgzDQtNLf2bsp2DX2qCCgC5mg";
+
+// Multiple CORS proxy URLs for redundancy
 export const CORS_PROXIES = [
   "https://api.allorigins.win/get?url=",
   "https://api.codetabs.com/v1/proxy?quest=",
+  "https://corsproxy.io/?",
 ];
-
-export const WALLET_ADDRESS = "46UxNFuGM2E3UwmZWWJicaRPoRwqwW4byQkaTHkX8yPcVihp91qAVtSFipWUGJJUyTXgzDQtNLf2bsp2DX2qCCgC5mg";
 
 /**
  * Fetch data from SupportXMR API using CORS proxy fallbacks
@@ -76,7 +78,7 @@ export const fetchWithProxy = async (url: string, proxyIndex: number = 0): Promi
 };
 
 /**
- * Get mining statistics for the configured wallet
+ * Get mining statistics for the XMRT DAO wallet
  */
 export const getMiningStats = async (): Promise<MiningStats> => {
   const url = `https://www.supportxmr.com/api/miner/${WALLET_ADDRESS}/stats`;
@@ -106,19 +108,36 @@ export const formatHashRate = (hashRate: number): string => {
  */
 export const formatXMR = (amount: string | number): string => {
   const num = typeof amount === 'string' ? parseFloat(amount) : amount;
-  return num.toFixed(6);
+  return isNaN(num) ? '0.000000' : num.toFixed(6);
 };
 
 /**
  * Format timestamp to "time ago" string
  */
 export const formatTimeAgo = (timestamp: number): string => {
-  if (timestamp === 0) return 'Never';
-  const now = Math.floor(Date.now() / 1000);
-  const diff = now - timestamp;
+  const now = Date.now();
+  const diff = Math.floor((now - timestamp) / 1000);
 
   if (diff < 60) return `${diff}s ago`;
   if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
   if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
   return `${Math.floor(diff / 86400)}d ago`;
+};
+
+/**
+ * Check if miner is active (has recent activity)
+ */
+export const isMinerActive = (lastHash: number): boolean => {
+  const now = Date.now() / 1000; // Convert to seconds
+  const timeDiff = now - lastHash;
+  return timeDiff < 300; // Active if last hash within 5 minutes
+};
+
+/**
+ * Calculate share acceptance rate
+ */
+export const getShareAcceptanceRate = (validShares: number, invalidShares: number): number => {
+  const totalShares = validShares + invalidShares;
+  if (totalShares === 0) return 0;
+  return (validShares / totalShares) * 100;
 };
