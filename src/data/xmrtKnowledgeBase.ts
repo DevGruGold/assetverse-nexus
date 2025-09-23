@@ -5,6 +5,8 @@ export interface XMRTKnowledgeEntry {
   topic: string;
   content: string;
   category: 'dao' | 'mining' | 'meshnet' | 'governance' | 'technical' | 'ai' | 'ecosystem' | 'deployment';
+
+export const xmrtKnowledgeBase: XMRTKnowledgeEntry[] = [
   {
     topic: "Live Mining Data Integration and Real-Time API Access",
     content: `Eliza has direct access to live mining statistics from the XMRT DAO wallet through the SupportXMR API. 
@@ -67,9 +69,9 @@ export interface XMRTKnowledgeEntry {
   },
   keywords: string[];
   confidence: number;
-}
+  }
 
-export const XMRT_KNOWLEDGE_BASE: XMRTKnowledgeEntry[] = [
+  export const XMRT_KNOWLEDGE_BASE: XMRTKnowledgeEntry[] = [
   // DevGruGold GitHub Ecosystem Mapping
   {
     topic: "XMRT-Ecosystem: Primary Focus and Core Platform",
@@ -263,9 +265,9 @@ export const XMRT_KNOWLEDGE_BASE: XMRTKnowledgeEntry[] = [
     keywords: ['autonomous evolution', 'roadmap', 'AI capabilities', 'cross-chain', 'mobile mining', 'mesh scaling', 'educational platform', 'privacy advancement', 'future development'],
     confidence: 1.0
   }
-];
+  ];
 
-export class XMRTKnowledgeSystem {
+  export class XMRTKnowledgeSystem {
   private knowledgeBase: XMRTKnowledgeEntry[];
 
   constructor() {
@@ -336,50 +338,50 @@ export class XMRTKnowledgeSystem {
   // Get comprehensive ecosystem overview
   getEcosystemOverview(): string {
     return `
-🌟 XMRT ECOSYSTEM OVERVIEW 🌟
+  🌟 XMRT ECOSYSTEM OVERVIEW 🌟
 
-"We don't ask for permission. We build the infrastructure."
+  "We don't ask for permission. We build the infrastructure."
 
-XMRT is a revolutionary autonomous DAO ecosystem created by Joseph Andrew Lee (DevGruGold) featuring:
+  XMRT is a revolutionary autonomous DAO ecosystem created by Joseph Andrew Lee (DevGruGold) featuring:
 
-🤖 AUTONOMOUS AI GOVERNANCE (95%+ autonomy)
-• Eliza AI embodying philosophical foundations and technical expertise
-• Self-improving code through GitHub integration with verifiable compute
-• Multi-criteria decision analysis (MCDA) with hardware-backed proofs
-• Real-time monitoring and emergency response systems
-• AI-Human collaboration rather than replacement
+  🤖 AUTONOMOUS AI GOVERNANCE (95%+ autonomy)
+  • Eliza AI embodying philosophical foundations and technical expertise
+  • Self-improving code through GitHub integration with verifiable compute
+  • Multi-criteria decision analysis (MCDA) with hardware-backed proofs
+  • Real-time monitoring and emergency response systems
+  • AI-Human collaboration rather than replacement
 
-📱 MOBILE MINING DEMOCRACY
-• Transforming smartphones into tools of economic empowerment
-• Optimized for global accessibility without expensive hardware
-• Thermal management and battery optimization for sustainability
-• RandomX algorithm specifically tuned for ARM processors
-• Dynamic hashrate adjustment based on device capabilities
+  📱 MOBILE MINING DEMOCRACY
+  • Transforming smartphones into tools of economic empowerment
+  • Optimized for global accessibility without expensive hardware
+  • Thermal management and battery optimization for sustainability
+  • RandomX algorithm specifically tuned for ARM processors
+  • Dynamic hashrate adjustment based on device capabilities
 
-🕸️ XMRT MESHNET & PRIVACY-FIRST INFRASTRUCTURE
-• Decentralized peer-to-peer communication networks
-• Privacy as a fundamental right, not a crime
-• Censorship-resistant mesh network topology
-• Token-incentivized node participation
-• Fault-tolerant connectivity independent of traditional infrastructure
+  🕸️ XMRT MESHNET & PRIVACY-FIRST INFRASTRUCTURE
+  • Decentralized peer-to-peer communication networks
+  • Privacy as a fundamental right, not a crime
+  • Censorship-resistant mesh network topology
+  • Token-incentivized node participation
+  • Fault-tolerant connectivity independent of traditional infrastructure
 
-🏗️ TECHNICAL ARCHITECTURE & PHILOSOPHY
-• React/Vite frontend with real-time mobile-first dashboard
-• Python Flask backend with smart contract integration
-• Solidity governance contracts with verifiable autonomy
-• Bridge technology connecting private and public blockchains
-• Comprehensive security and audit frameworks
+  🏗️ TECHNICAL ARCHITECTURE & PHILOSOPHY
+  • React/Vite frontend with real-time mobile-first dashboard
+  • Python Flask backend with smart contract integration
+  • Solidity governance contracts with verifiable autonomy
+  • Bridge technology connecting private and public blockchains
+  • Comprehensive security and audit frameworks
 
-🌱 SUSTAINABLE TECHNOLOGY ETHICS
-• Mobile mining uses significantly less energy than traditional mining
-• Environmental responsibility through ARM processor optimization
-• Technology that protects the environment while empowering users
+  🌱 SUSTAINABLE TECHNOLOGY ETHICS
+  • Mobile mining uses significantly less energy than traditional mining
+  • Environmental responsibility through ARM processor optimization
+  • Technology that protects the environment while empowering users
 
-Current Performance: 92% decision accuracy, 99.8% uptime, 94% community satisfaction
+  Current Performance: 92% decision accuracy, 99.8% uptime, 94% community satisfaction
 
-The vision: Building infrastructure for human sovereignty where technology serves collective good with integrity, cryptocurrency is democratically accessible, privacy is fundamental, and true decentralization requires both human wisdom and AI efficiency working in harmony.
+  The vision: Building infrastructure for human sovereignty where technology serves collective good with integrity, cryptocurrency is democratically accessible, privacy is fundamental, and true decentralization requires both human wisdom and AI efficiency working in harmony.
     `.trim();
   }
-}
+  }];
 
-export const xmrtKnowledge = new XMRTKnowledgeSystem();
+  export const xmrtKnowledge = new XMRTKnowledgeSystem();
