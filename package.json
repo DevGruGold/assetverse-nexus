@@ -48,7 +48,6 @@
     "postcss": "^8.4.35",
     "tailwindcss": "^3.4.1",
     "typescript": "^5.2.2",
-    "vite": "^5.2.0",
-    "lovable-tagger": "^0.0.1"
+    "vite": "^5.2.0"
   }
 }
