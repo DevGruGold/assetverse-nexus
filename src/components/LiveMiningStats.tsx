@@ -366,7 +366,7 @@ const LiveMiningStats: React.FC = () => {
               <Wallet className="h-4 w-4 mr-2" />
               <span className="text-sm">Mining Address</span>
             </div>
-            <div className="text-sm font-mono text-white bg-gray-800 p-2 rounded border">
+            <div className="text-sm font-mono text-white bg-gray-800 p-2 rounded border break-all overflow-x-auto max-w-full">
               {WALLET_ADDRESS}
             </div>
           </div>
