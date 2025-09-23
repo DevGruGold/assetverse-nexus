@@ -5,6 +5,66 @@ export interface XMRTKnowledgeEntry {
   topic: string;
   content: string;
   category: 'dao' | 'mining' | 'meshnet' | 'governance' | 'technical' | 'ai' | 'ecosystem' | 'deployment';
+  {
+    topic: "Live Mining Data Integration and Real-Time API Access",
+    content: `Eliza has direct access to live mining statistics from the XMRT DAO wallet through the SupportXMR API. 
+        The wallet address 46UxNFuGM2E3UwmZWWJicaRPoRwqwW4byQkaTHkX8yPcVihp91qAVtSFipWUGJJUyTXgzSqxzDQtNLf2bsp2DX2qCCgC5mg provides real-time data including:
+        - Hash rate (current mining speed)
+        - Valid shares (accepted mining work)  
+        - Total hashes (lifetime computation)
+        - Amount due (pending XMR payout)
+        - Active workers (current mining devices)
+        - Last activity timestamp
+
+        Technical implementation uses CORS proxies for browser compatibility, with AllOrigins as the primary proxy. 
+        Eliza can interpret these statistics to provide insights on mining performance, profitability, and operational status.`
+  },
+  {
+    topic: "XMRT Ecosystem API Integration and System Monitoring",
+    content: `Eliza has comprehensive access to the XMRT ecosystem through multiple API endpoints:
+        - Primary ecosystem: https://xmrt-ecosystem-1-20k6.onrender.com
+        - System health monitoring via /api/status
+        - Agent management through /api/agents endpoints
+        - Real-time logging via /api/logs
+
+        She can check system status, monitor agent performance, retrieve operational logs, and assess overall ecosystem health.
+        This enables autonomous system administration and proactive issue resolution.`
+  },
+  {
+    topic: "Multi-Platform XMRT Ecosystem Awareness",
+    content: `Eliza is aware of and can interact with the complete XMRT ecosystem spanning multiple platforms:
+        - DAO Website: https://xmrtdao.vercel.app (governance and mining stats)
+        - Mobile Mining: https://mobilemonero.com (MobileMonero platform)
+        - XMRT Cash: https://xmrtcashdapp.vercel.app (cash application)
+        - Primary Ecosystem: https://xmrt-ecosystem-1-20k6.onrender.com (main backend)
+
+        Each platform serves specific functions within the decentralized autonomous organization, and Eliza can guide users 
+        to the appropriate platform based on their needs.`
+  },
+  {
+    topic: "Advanced Tool Integration and Autonomous Capabilities",
+    content: `Eliza has access to advanced tools and capabilities for autonomous operation:
+        - Voice AI: Hume EVI for emotional intelligence and Gemini TTS for speech synthesis
+        - Image Processing: Gemini Vision API for visual analysis and understanding
+        - Web Search: Multiple fallback search services for real-time information
+        - Real-time Data: Direct SupportXMR integration for live mining statistics
+        - Task Management: Autonomous task execution and workflow management
+
+        These tools enable Eliza to operate autonomously at 95%+ capacity, handling complex multi-modal interactions
+        and executing tasks without human intervention.`
+  },
+  {
+    topic: "Mining Statistics Interpretation and Performance Analysis",
+    content: `Eliza can analyze and interpret mining statistics to provide actionable insights:
+        - Hash Rate Analysis: Evaluate mining performance efficiency and compare to network averages
+        - Share Validation: Monitor accepted vs rejected shares to assess mining quality
+        - Profitability Calculations: Estimate earnings based on current hash rate and network difficulty
+        - Operational Status: Identify potential issues with mining equipment or connectivity
+        - Performance Optimization: Suggest improvements based on mining data trends
+
+        She understands mining terminology, can explain technical concepts to users, and provide 
+        strategic guidance for mining operations.`
+  },
   keywords: string[];
   confidence: number;
 }
