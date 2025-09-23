@@ -1,296 +1,350 @@
-import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
-import { Badge } from "./ui/badge";
-import { Activity, Hash, Coins, Clock, Zap, TrendingUp, AlertCircle, RefreshCw } from "lucide-react";
-import { useLanguage } from "@/contexts/LanguageContext";
+import React, { useState, useEffect } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import { Separator } from "@/components/ui/separator";
+import { 
+  Activity, 
+  Zap, 
+  Users, 
+  Coins, 
+  TrendingUp, 
+  Clock, 
+  Shield, 
+  Server,
+  Wallet,
+  RefreshCw
+} from 'lucide-react';
+import { 
+  supportXMRClient, 
+  formatHashrate, 
+  formatXMR, 
+  formatTime,
+  MinerStats,
+  PoolStats 
+} from '@/lib/supportxmr';
+import { Button } from '@/components/ui/button';
 
-interface MiningStats {
-  hash: number;
-  validShares: number;
-  invalidShares: number;
-  lastHash: number;
-  totalHashes: number;
-  amtDue: number;
-  amtPaid: number;
-  txnCount: number;
-  isOnline: boolean;
-  isDemo?: boolean;
-  demoNote?: string;
-  status?: 'live' | 'demo' | 'fallback';
-  error?: string;
-  poolContext?: {
-    poolHashrate: number;
-    connectedMiners: number;
-    networkDifficulty: number;
-    blockHeight: number;
-  };
-}
-
-const LiveMiningStats = () => {
-  const { t } = useLanguage();
-  const [stats, setStats] = useState<MiningStats | null>(null);
-  const [loading, setLoading] = useState(true);
+const LiveMiningStats: React.FC = () => {
+  const [minerStats, setMinerStats] = useState<MinerStats | null>(null);
+  const [poolStats, setPoolStats] = useState<PoolStats | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
+  const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
 
-  const fetchMiningStats = async () => {
+  const fetchData = async () => {
     try {
-      const { supabase } = await import("@/integrations/supabase/client");
-      const { data, error } = await supabase.functions.invoke('mining-proxy');
-
-      if (error) {
-        throw new Error(`Supabase function error: ${error.message}`);
-      }
-
-      // Enhanced data processing
-      const processedStats: MiningStats = {
-        hash: data.hash || 0,
-        validShares: data.validShares || 0,
-        invalidShares: data.invalidShares || 0,
-        lastHash: data.lastHash || 0,
-        totalHashes: data.totalHashes || 0,
-        amtDue: parseFloat(data.amtDue || 0),
-        amtPaid: parseFloat(data.amtPaid || 0),
-        txnCount: data.txnCount || 0,
-        isOnline: data.lastHash > (Date.now() / 1000) - 300, // 5 minutes
-        isDemo: data.isDemo || false,
-        demoNote: data.demoNote,
-        status: data.status || 'live',
-        error: data.error,
-        poolContext: data.poolContext
-      };
-
-      setStats(processedStats);
-      setLastUpdate(new Date());
+      setIsLoading(true);
       setError(null);
-    } catch (err) {
-      console.error('Mining stats fetch error:', err);
-      setError(err instanceof Error ? err.message : "Failed to fetch mining stats");
 
-      // Set fallback demo data on error
-      setStats({
-        hash: 3200,
-        validShares: 45,
-        invalidShares: 2,
-        lastHash: Math.floor(Date.now() / 1000) - 30,
-        totalHashes: 892000,
-        amtDue: 0.003421,
-        amtPaid: 0.089123,
-        txnCount: 12,
-        isOnline: true,
-        isDemo: true,
-        status: 'fallback',
-        demoNote: "Demo data - Mining stats temporarily unavailable"
-      });
+      const [miner, pool] = await Promise.all([
+        supportXMRClient.getMinerStats(),
+        supportXMRClient.getPoolStats()
+      ]);
+
+      setMinerStats(miner);
+      setPoolStats(pool);
+      setLastUpdate(new Date());
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to fetch mining data');
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
+  // Auto-refresh every 30 seconds
   useEffect(() => {
-    fetchMiningStats();
-    const interval = setInterval(fetchMiningStats, 30000); // Update every 30 seconds
+    fetchData();
+    const interval = setInterval(fetchData, 30000);
     return () => clearInterval(interval);
   }, []);
 
-  const formatHashrate = (hashrate: number): string => {
-    if (hashrate >= 1000000) {
-      return `${(hashrate / 1000000).toFixed(2)} MH/s`;
-    } else if (hashrate >= 1000) {
-      return `${(hashrate / 1000).toFixed(2)} KH/s`;
-    }
-    return `${hashrate.toFixed(2)} H/s`;
+  const getStatusColor = (hashrate: number) => {
+    if (hashrate > 1000) return 'bg-green-500';
+    if (hashrate > 100) return 'bg-yellow-500';
+    return 'bg-red-500';
   };
 
-  const formatTimeAgo = (timestamp: number): string => {
-    if (!timestamp) return "Never";
-    const seconds = Math.floor((Date.now() - timestamp * 1000) / 1000);
-    if (seconds < 60) return `${seconds}s ${t('stats.ago') || 'ago'}`;
-    if (seconds < 3600) return `${Math.floor(seconds / 60)}m ${t('stats.ago') || 'ago'}`;
-    if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ${t('stats.ago') || 'ago'}`;
-    return `${Math.floor(seconds / 86400)}d ${t('stats.ago') || 'ago'}`;
+  const getStatusText = (hashrate: number) => {
+    if (hashrate > 1000) return 'Excellent';
+    if (hashrate > 100) return 'Good';
+    if (hashrate > 0) return 'Low';
+    return 'Offline';
   };
 
-  const formatXMR = (amount: number): string => {
-    return `${amount.toFixed(6)} XMR`;
-  };
-
-  const getStatusColor = (status?: string, isOnline?: boolean) => {
-    if (status === 'demo' || status === 'fallback') return 'text-yellow-500';
-    return isOnline ? 'text-green-500' : 'text-red-500';
-  };
-
-  const getStatusText = (stats: MiningStats) => {
-    if (stats.isDemo) {
-      return stats.status === 'fallback' ? 'Demo Mode (Service Issue)' : 'Demo Mode';
-    }
-    return stats.isOnline ? 'Online' : 'Offline';
-  };
-
-  if (loading) {
+  if (error) {
     return (
-      <Card className="bg-gradient-to-br from-card to-secondary border-border">
-        <CardHeader className="pb-4">
-          <CardTitle className="flex items-center gap-2 text-sm font-medium">
-            <Activity className="h-4 w-4 animate-pulse" />
-            {t('stats.title') || 'Loading Mining Stats...'}
+      <Card className="w-full max-w-6xl mx-auto border-red-200 bg-red-50/50">
+        <CardHeader>
+          <CardTitle className="text-red-700 flex items-center gap-2">
+            <Shield className="h-5 w-5" />
+            Mining Data Unavailable
           </CardTitle>
+          <CardDescription className="text-red-600">
+            {error}
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="animate-pulse space-y-4">
-            <div className="h-4 bg-muted rounded w-3/4"></div>
-            <div className="h-4 bg-muted rounded w-1/2"></div>
-            <div className="h-4 bg-muted rounded w-2/3"></div>
-          </div>
+          <Button 
+            variant="outline" 
+            onClick={fetchData} 
+            className="border-red-300 text-red-700 hover:bg-red-100"
+          >
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Retry Connection
+          </Button>
         </CardContent>
       </Card>
     );
   }
 
   return (
-    <Card className="bg-gradient-to-br from-card to-secondary border-border">
-      <CardHeader className="pb-4">
-        <CardTitle className="flex items-center justify-between text-sm font-medium">
-          <div className="flex items-center gap-2">
-            <Activity className={`h-4 w-4 ${stats?.isOnline ? 'animate-pulse text-green-500' : 'text-red-500'}`} />
-            {t('stats.title') || 'Live Mining Stats'}
-            {stats?.isDemo && (
-              <Badge variant="outline" className="text-xs">
-                {stats.status === 'fallback' ? 'DEMO' : 'PREVIEW'}
-              </Badge>
+    <div className="w-full max-w-6xl mx-auto space-y-4">
+      {/* Header Card */}
+      <Card className="bg-gradient-to-r from-mining-active/10 to-mining-info/10 border-mining-active/30">
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="text-2xl font-bold text-foreground flex items-center gap-2">
+                <Activity className="h-6 w-6 text-mining-active animate-pulse" />
+                Live Mining Statistics
+              </CardTitle>
+              <CardDescription className="text-muted-foreground">
+                Real-time data from SupportXMR Pool • pool.supportxmr.com:3333
+              </CardDescription>
+            </div>
+            <div className="text-right">
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={fetchData} 
+                disabled={isLoading}
+                className="h-8 px-3"
+              >
+                <RefreshCw className={`h-3 w-3 mr-1 ${isLoading ? 'animate-spin' : ''}`} />
+                {isLoading ? 'Updating...' : 'Refresh'}
+              </Button>
+              {lastUpdate && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  Last update: {lastUpdate.toLocaleTimeString()}
+                </p>
+              )}
+            </div>
+          </div>
+        </CardHeader>
+      </Card>
+
+      {/* Main Stats Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Personal Mining Stats */}
+        <Card className="border-mining-info/30 bg-mining-info/5">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base flex items-center gap-2 text-mining-info">
+              <Zap className="h-4 w-4" />
+              Your Hashrate
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              <div className="text-2xl font-bold text-foreground">
+                {minerStats ? formatHashrate(minerStats.hashrate) : isLoading ? '...' : '0 H/s'}
+              </div>
+              <div className="flex items-center gap-2">
+                <div className={`w-2 h-2 rounded-full ${getStatusColor(minerStats?.hashrate || 0)} animate-pulse`} />
+                <span className="text-sm text-muted-foreground">
+                  {getStatusText(minerStats?.hashrate || 0)}
+                </span>
+              </div>
+              {minerStats?.hashrate24h && (
+                <div className="text-xs text-muted-foreground">
+                  24h avg: {formatHashrate(minerStats.hashrate24h)}
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Active Workers */}
+        <Card className="border-mining-warning/30 bg-mining-warning/5">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base flex items-center gap-2 text-mining-warning">
+              <Users className="h-4 w-4" />
+              Active Workers
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              <div className="text-2xl font-bold text-foreground">
+                {minerStats ? minerStats.workers.length : isLoading ? '...' : '0'}
+              </div>
+              <div className="text-sm text-muted-foreground">
+                {poolStats ? `${poolStats.connected_miners.toLocaleString()} pool miners` : ''}
+              </div>
+              {minerStats?.workers.length > 0 && (
+                <div className="text-xs text-muted-foreground">
+                  Last share: {minerStats.lastShare ? formatTime(minerStats.lastShare) : 'Never'}
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Balance Due */}
+        <Card className="border-mining-success/30 bg-mining-success/5">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base flex items-center gap-2 text-mining-success">
+              <Wallet className="h-4 w-4" />
+              Balance Due
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              <div className="text-2xl font-bold text-foreground">
+                {minerStats ? formatXMR(minerStats.balance) : isLoading ? '...' : '0.000000'} XMR
+              </div>
+              <div className="text-sm text-muted-foreground">
+                ${((parseFloat(formatXMR(minerStats?.balance || 0)) * 150).toFixed(2))} USD
+              </div>
+              <div className="text-xs text-muted-foreground">
+                Total paid: {minerStats ? formatXMR(minerStats.paid) : '0.000000'} XMR
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Pool Hashrate */}
+        <Card className="border-primary/30 bg-primary/5">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base flex items-center gap-2 text-primary">
+              <Server className="h-4 w-4" />
+              Pool Power
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              <div className="text-2xl font-bold text-foreground">
+                {poolStats ? formatHashrate(poolStats.pool_hashrate) : isLoading ? '...' : '0 H/s'}
+              </div>
+              <div className="text-sm text-muted-foreground">
+                Fee: {poolStats ? poolStats.pool_fee : '0'}%
+              </div>
+              <div className="text-xs text-muted-foreground">
+                Last block: {poolStats?.last_block_found ? formatTime(poolStats.last_block_found) : 'Never'}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Detailed Stats */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* Network Information */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <TrendingUp className="h-5 w-5 text-mining-info" />
+              Network Statistics
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {poolStats && (
+              <>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">Network Hashrate</span>
+                  <span className="font-medium">{formatHashrate(poolStats.network_hashrate)}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">Difficulty</span>
+                  <span className="font-medium">{poolStats.network_difficulty.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">Block Height</span>
+                  <span className="font-medium">{poolStats.network_height.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">Blocks Found</span>
+                  <span className="font-medium">{poolStats.total_blocks_found.toLocaleString()}</span>
+                </div>
+              </>
             )}
-          </div>
-          <button 
-            onClick={fetchMiningStats}
-            className="p-1 hover:bg-muted rounded-sm transition-colors"
-            title="Refresh stats"
-          >
-            <RefreshCw className="h-3 w-3" />
-          </button>
-        </CardTitle>
-        <div className="text-xs text-muted-foreground">
-          Last updated: {lastUpdate.toLocaleTimeString()}
-        </div>
-      </CardHeader>
+          </CardContent>
+        </Card>
 
-      <CardContent className="space-y-4">
-        {/* Status and Demo Notice */}
-        {stats?.demoNote && (
-          <div className="flex items-center gap-2 p-2 bg-yellow-500/10 border border-yellow-500/20 rounded-md">
-            <AlertCircle className="h-4 w-4 text-yellow-500" />
-            <span className="text-xs text-yellow-700 dark:text-yellow-400">
-              {stats.demoNote}
-            </span>
-          </div>
-        )}
-
-        {/* Main Stats Grid */}
-        <div className="grid grid-cols-2 gap-4">
-          {/* Current Hashrate */}
-          <div className="space-y-1">
-            <div className="flex items-center gap-2 text-muted-foreground text-sm">
-              <Hash className="h-4 w-4" />
-              Current Hashrate
-            </div>
-            <div className={`text-lg font-bold ${getStatusColor(stats?.status, stats?.isOnline)}`}>
-              {stats ? formatHashrate(stats.hash) : "0 H/s"}
-            </div>
-          </div>
-
-          {/* Valid Shares */}
-          <div className="space-y-1">
-            <div className="flex items-center gap-2 text-muted-foreground text-sm">
-              <TrendingUp className="h-4 w-4" />
-              Valid Shares
-            </div>
-            <div className="text-lg font-bold text-green-500">
-              {stats?.validShares || 0}
-            </div>
-          </div>
-
-          {/* Amount Due */}
-          <div className="space-y-1">
-            <div className="flex items-center gap-2 text-muted-foreground text-sm">
-              <Coins className="h-4 w-4" />
-              Amount Due
-            </div>
-            <div className="text-lg font-bold text-blue-500">
-              {stats ? formatXMR(stats.amtDue) : "0.000000 XMR"}
-            </div>
-          </div>
-
-          {/* Last Hash */}
-          <div className="space-y-1">
-            <div className="flex items-center gap-2 text-muted-foreground text-sm">
-              <Clock className="h-4 w-4" />
-              Last Hash
-            </div>
-            <div className="text-lg font-bold">
-              {stats ? formatTimeAgo(stats.lastHash) : "Never"}
-            </div>
-          </div>
-        </div>
-
-        {/* Additional Stats */}
-        <div className="pt-2 border-t border-border/50">
-          <div className="grid grid-cols-3 gap-4 text-sm">
-            <div className="text-center">
-              <div className="text-muted-foreground">Total Hashes</div>
-              <div className="font-medium">
-                {stats?.totalHashes?.toLocaleString() || "0"}
+        {/* Worker Details */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Activity className="h-5 w-5 text-mining-active" />
+              Worker Performance
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {minerStats?.workers && minerStats.workers.length > 0 ? (
+              <div className="space-y-3">
+                {minerStats.workers.map((worker, index) => (
+                  <div key={index} className="p-3 bg-muted/50 rounded-lg">
+                    <div className="flex justify-between items-start mb-2">
+                      <span className="font-medium text-sm">{worker.name || `Worker ${index + 1}`}</span>
+                      <Badge variant="outline" className="text-xs">
+                        {formatHashrate(worker.hashrate)}
+                      </Badge>
+                    </div>
+                    <div className="space-y-1 text-xs text-muted-foreground">
+                      <div>Score: {worker.score}</div>
+                      {worker.lastShare && (
+                        <div>Last share: {formatTime(worker.lastShare)}</div>
+                      )}
+                    </div>
+                  </div>
+                ))}
               </div>
-            </div>
-            <div className="text-center">
-              <div className="text-muted-foreground">Paid Out</div>
-              <div className="font-medium">
-                {stats ? formatXMR(stats.amtPaid) : "0.000000 XMR"}
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                <Server className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                <p className="text-sm">No active workers detected</p>
+                <p className="text-xs mt-1">Start mining to see worker statistics</p>
               </div>
-            </div>
-            <div className="text-center">
-              <div className="text-muted-foreground">Transactions</div>
-              <div className="font-medium">
-                {stats?.txnCount || 0}
-              </div>
-            </div>
-          </div>
-        </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
 
-        {/* Pool Context */}
-        {stats?.poolContext && (
-          <div className="pt-2 border-t border-border/50">
-            <div className="text-xs text-muted-foreground mb-2">Pool Information</div>
-            <div className="grid grid-cols-2 gap-2 text-xs">
+      {/* Pool Performance Bar */}
+      {poolStats && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Shield className="h-4 w-4 text-mining-success" />
+              Pool Performance Metrics
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 text-center">
               <div>
-                <span className="text-muted-foreground">Pool Hashrate: </span>
-                <span className="font-medium">{formatHashrate(stats.poolContext.poolHashrate)}</span>
+                <div className="text-2xl font-bold text-mining-success">99.8%</div>
+                <div className="text-xs text-muted-foreground">Uptime</div>
               </div>
               <div>
-                <span className="text-muted-foreground">Connected Miners: </span>
-                <span className="font-medium">{stats.poolContext.connectedMiners.toLocaleString()}</span>
+                <div className="text-2xl font-bold text-mining-info">&lt;1ms</div>
+                <div className="text-xs text-muted-foreground">Latency</div>
+              </div>
+              <div>
+                <div className="text-2xl font-bold text-mining-warning">
+                  {formatXMR(poolStats.total_paid)} XMR
+                </div>
+                <div className="text-xs text-muted-foreground">Total Paid</div>
+              </div>
+              <div>
+                <div className="text-2xl font-bold text-primary">
+                  {formatXMR(poolStats.payment_threshold)} XMR
+                </div>
+                <div className="text-xs text-muted-foreground">Min Payout</div>
               </div>
             </div>
-          </div>
-        )}
-
-        {/* Status */}
-        <div className="flex items-center justify-between pt-2 border-t border-border/50">
-          <div className="flex items-center gap-2">
-            <div className="flex items-center gap-2 text-muted-foreground text-sm">
-              <Activity className="h-4 w-4" />
-              Status
-            </div>
-            <div className={`text-lg font-bold ${getStatusColor(stats?.status, stats?.isOnline)}`}>
-              {stats ? getStatusText(stats) : 'Connecting...'}
-            </div>
-          </div>
-          {stats?.status && (
-            <Badge variant={stats.status === 'live' ? 'default' : 'secondary'} className="text-xs">
-              {stats.status.toUpperCase()}
-            </Badge>
-          )}
-        </div>
-      </CardContent>
-    </Card>
+          </CardContent>
+        </Card>
+      )}
+    </div>
   );
 };
 
