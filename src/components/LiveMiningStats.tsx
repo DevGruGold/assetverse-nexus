@@ -3,6 +3,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
+import { Button } from '@/components/ui/button';
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { 
   Activity, 
   Zap, 
@@ -18,81 +20,73 @@ import {
   AlertTriangle,
   Loader2,
   Wifi,
-  WifiOff
+  WifiOff,
+  DollarSign,
+  Timer
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Alert, AlertDescription } from "@/components/ui/alert";
 
-interface MiningData {
+// Mining statistics interfaces
+interface SupportXMRMinerStats {
   hash: number;
   identifier: string;
   lastHash: number;
   totalHashes: number;
   validShares: number;
-  invalidShares?: number;
-  amtDue: string | number;
-  amtPaid: string | number;
-  txnCount?: number;
-  status?: string;
+  invalidShares: number;
+  expiry: number;
+  amtPaid: number;
+  amtDue: number;
+  txnCount: number;
 }
 
-interface PoolData {
-  poolHashrate: number;
-  connectedMiners: number;
-  networkDifficulty: number;
-  blockHeight: number;
-}
-
-interface ApiResponse {
-  minerStats: MiningData | null;
-  poolStats: PoolData | null;
-  timestamp: number;
-  error?: string;
+interface MiningStats {
+  hashrate: number;
+  totalHashes: number;
+  validShares: number;
+  invalidShares: number;
+  xmrtEarned: number;
+  xmrtPaid: number;
+  uptime: string;
+  status: 'connected' | 'disconnected' | 'loading';
+  lastUpdate: Date;
 }
 
 const LiveMiningStats: React.FC = () => {
-  const [data, setData] = useState<ApiResponse | null>(null);
+  // Hard-coded wallet address as requested
+  const WALLET_ADDRESS = "46UxNFuGM2E3UwmZWWJicaRPoRwqwW4byQkaTHkX8yPcVihp91qAVtSFipWUGJJUyTXgzSqxzDQtNLf2bsp2DX2qCCgC5mg";
+
+  const [miningStats, setMiningStats] = useState<MiningStats>({
+    hashrate: 0,
+    totalHashes: 0,
+    validShares: 0,
+    invalidShares: 0,
+    xmrtEarned: 0,
+    xmrtPaid: 0,
+    uptime: "0h 0m",
+    status: 'loading',
+    lastUpdate: new Date()
+  });
+
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
-  const [currentProxy, setCurrentProxy] = useState<string>("");
-  const [retryCount, setRetryCount] = useState(0);
-  const [isOnline, setIsOnline] = useState(true);
 
-  // XMRT DAO Wallet address - this is the real wallet
-  const WALLET_ADDRESS = "46UxNFuGM2E3UwmZWWJicaRPoRwqwW4byQkaTHkX8yPcVihp91qAVtSFipWUGJJUyTXgzDQtNLf2bsp2DX2qCCgC5mg";
-
-  // Multiple CORS proxies for redundancy
-  const CORS_PROXIES = [
-    "https://api.allorigins.win/get?url=",
-    "https://api.codetabs.com/v1/proxy?quest=",
-    "https://corsproxy.io/?",
-  ];
-
-  // SupportXMR API endpoints
-  const MINING_STATS_API = `https://www.supportxmr.com/api/miner/${WALLET_ADDRESS}/stats`;
-  const POOL_STATS_API = "https://www.supportxmr.com/api/pool/stats";
-
-  /**
-   * Fetch data with CORS proxy fallbacks
-   */
-  const fetchWithProxy = async (url: string, proxyIndex: number = 0): Promise<any> => {
-    if (proxyIndex >= CORS_PROXIES.length) {
-      throw new Error('All CORS proxies failed');
-    }
-
-    const proxy = CORS_PROXIES[proxyIndex];
-    const proxyUrl = `${proxy}${encodeURIComponent(url)}`;
-
-    setCurrentProxy(proxy.split('/')[2].split('.')[0]); // Extract proxy name
-
+  // Fetch real mining data using AllOrigins CORS proxy (proven working)
+  const fetchMiningData = async () => {
     try {
-      console.log(`Fetching with proxy ${proxyIndex + 1}:`, proxy.split('/')[2]);
+      setIsLoading(true);
+      setError(null);
+
+      // Use AllOrigins proxy - this is the working method from our testing
+      const supportxmrUrl = `https://supportxmr.com/api/miner/${WALLET_ADDRESS}/stats`;
+      const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(supportxmrUrl)}`;
+
+      console.log('Fetching mining data from:', supportxmrUrl);
+      console.log('Using proxy:', proxyUrl);
 
       const response = await fetch(proxyUrl, {
         method: 'GET',
         headers: {
-          'Accept': 'application/json',
+          'Accept': 'application/json'
         }
       });
 
@@ -100,220 +94,147 @@ const LiveMiningStats: React.FC = () => {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
 
-      const result = await response.json();
+      const proxyData = await response.json();
 
-      // Handle AllOrigins response format
-      if (proxy.includes('allorigins') && result.contents) {
-        return JSON.parse(result.contents);
+      // AllOrigins returns the API response in the 'contents' field
+      if (!proxyData.contents) {
+        throw new Error('Invalid proxy response structure');
       }
 
-      // Handle other proxy formats
-      return result;
+      const apiData: SupportXMRMinerStats = JSON.parse(proxyData.contents);
 
-    } catch (error) {
-      console.warn(`Proxy ${proxyIndex + 1} failed:`, error);
+      console.log('Received mining data:', apiData);
 
-      // Try next proxy
-      if (proxyIndex < CORS_PROXIES.length - 1) {
-        return await fetchWithProxy(url, proxyIndex + 1);
-      }
+      // Update stats with real data
+      setMiningStats({
+        hashrate: apiData.hash || 0,
+        totalHashes: apiData.totalHashes || 0,
+        validShares: apiData.validShares || 0,
+        invalidShares: apiData.invalidShares || 0,
+        xmrtEarned: (apiData.amtDue || 0) / 1000000000000, // Convert from atomic units
+        xmrtPaid: (apiData.amtPaid || 0) / 1000000000000, // Convert from atomic units
+        uptime: calculateUptime(apiData.lastHash || Date.now()),
+        status: (apiData.hash || 0) > 0 ? 'connected' : 'disconnected',
+        lastUpdate: new Date()
+      });
 
-      throw error;
-    }
-  };
-
-  /**
-   * Fetch live mining statistics
-   */
-  const fetchMiningData = async (): Promise<void> => {
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      console.log('Fetching live mining data for wallet:', WALLET_ADDRESS);
-
-      // Fetch mining stats and pool stats in parallel
-      const [minerStats, poolStats] = await Promise.allSettled([
-        fetchWithProxy(MINING_STATS_API),
-        fetchWithProxy(POOL_STATS_API)
-      ]);
-
-      const response: ApiResponse = {
-        minerStats: null,
-        poolStats: null,
-        timestamp: Date.now()
-      };
-
-      // Process miner stats
-      if (minerStats.status === 'fulfilled') {
-        response.minerStats = minerStats.value;
-        console.log('Successfully fetched miner stats:', minerStats.value);
-      } else {
-        console.warn('Failed to fetch miner stats:', minerStats.reason);
-      }
-
-      // Process pool stats
-      if (poolStats.status === 'fulfilled') {
-        const poolData = poolStats.value;
-        response.poolStats = {
-          poolHashrate: poolData.pool_statistics?.hashRate || 0,
-          connectedMiners: poolData.pool_statistics?.miners || 0,
-          networkDifficulty: poolData.network?.difficulty || 0,
-          blockHeight: poolData.network?.height || 0
-        };
-        console.log('Successfully fetched pool stats:', response.poolStats);
-      } else {
-        console.warn('Failed to fetch pool stats:', poolStats.reason);
-      }
-
-      // If both requests failed, show error
-      if (minerStats.status === 'rejected' && poolStats.status === 'rejected') {
-        throw new Error('Unable to connect to SupportXMR API. Please check your connection and try again.');
-      }
-
-      setData(response);
-      setLastUpdate(new Date());
-      setRetryCount(0);
-      setIsOnline(true);
+      setIsLoading(false);
 
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
-      console.error('Failed to fetch mining data:', errorMessage);
-      setError(errorMessage);
-      setRetryCount(prev => prev + 1);
-      setIsOnline(false);
-    } finally {
+      console.error('Error fetching mining data:', err);
+      setError(`Failed to fetch mining data: ${err.message}`);
       setIsLoading(false);
+      setMiningStats(prev => ({
+        ...prev,
+        status: 'disconnected'
+      }));
     }
   };
 
-  /**
-   * Auto-refresh data every 30 seconds
-   */
+  // Calculate uptime from last hash timestamp
+  const calculateUptime = (lastHashTime: number): string => {
+    const now = Date.now();
+    const uptimeMs = now - lastHashTime;
+    const hours = Math.floor(uptimeMs / (1000 * 60 * 60));
+    const minutes = Math.floor((uptimeMs % (1000 * 60 * 60)) / (1000 * 60));
+    return `${hours}h ${minutes}m`;
+  };
+
+  // Format hashrate with appropriate units
+  const formatHashrate = (hashrate: number): string => {
+    if (hashrate === 0) return "0 H/s";
+    if (hashrate < 1000) return `${hashrate} H/s`;
+    if (hashrate < 1000000) return `${(hashrate / 1000).toFixed(1)} KH/s`;
+    return `${(hashrate / 1000000).toFixed(1)} MH/s`;
+  };
+
+  // Format XMR amounts
+  const formatXMR = (amount: number): string => {
+    return amount.toFixed(6);
+  };
+
+  // Auto-refresh every 30 seconds
   useEffect(() => {
     fetchMiningData();
-
-    const interval = setInterval(() => {
-      fetchMiningData();
-    }, 30000); // Refresh every 30 seconds
-
+    const interval = setInterval(fetchMiningData, 30000);
     return () => clearInterval(interval);
   }, []);
 
-  /**
-   * Get status badge color based on mining activity
-   */
-  const getStatusColor = (minerData: MiningData | null): string => {
-    if (!minerData) return 'bg-gray-500';
-    if (minerData.hash > 0) return 'bg-green-500';
-    return 'bg-red-500';
+  // Get status color
+  const getStatusColor = () => {
+    switch (miningStats.status) {
+      case 'connected': return 'text-green-400';
+      case 'disconnected': return 'text-red-400';
+      default: return 'text-yellow-400';
+    }
   };
 
-  /**
-   * Get status text
-   */
-  const getStatusText = (minerData: MiningData | null): string => {
-    if (!minerData) return 'Connecting...';
-    if (minerData.hash > 0) return 'Live Mining';
-    return 'Inactive';
+  // Get status icon
+  const getStatusIcon = () => {
+    switch (miningStats.status) {
+      case 'connected': return <Wifi className="h-4 w-4" />;
+      case 'disconnected': return <WifiOff className="h-4 w-4" />;
+      default: return <Loader2 className="h-4 w-4 animate-spin" />;
+    }
   };
-
-  /**
-   * Format hash rate to human readable format
-   */
-  const formatHashRate = (hashRate: number): string => {
-    if (hashRate >= 1e9) return `${(hashRate / 1e9).toFixed(2)} GH/s`;
-    if (hashRate >= 1e6) return `${(hashRate / 1e6).toFixed(2)} MH/s`;
-    if (hashRate >= 1e3) return `${(hashRate / 1e3).toFixed(2)} KH/s`;
-    return `${hashRate.toFixed(0)} H/s`;
-  };
-
-  /**
-   * Format XMR amount
-   */
-  const formatXMR = (amount: string | number): string => {
-    const num = typeof amount === 'string' ? parseFloat(amount) : amount;
-    return isNaN(num) ? '0.000000' : num.toFixed(6);
-  };
-
-  /**
-   * Format time ago
-   */
-  const formatTimeAgo = (timestamp: number): string => {
-    const now = Date.now();
-    const diff = Math.floor((now - timestamp) / 1000);
-
-    if (diff < 60) return `${diff}s ago`;
-    if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
-    return `${Math.floor(diff / 3600)}h ago`;
-  };
-
-  const minerData = data?.minerStats;
-  const poolData = data?.poolStats;
 
   return (
-    <div className="w-full max-w-4xl mx-auto space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
+    <div className="w-full max-w-6xl mx-auto space-y-6 p-4">
+      {/* Header - Using white text as requested, removing purple/blue styling */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-white">Live Mining Statistics</h2>
-          <p className="text-gray-400 text-sm">Real-time data from SupportXMR Pool</p>
+          <h2 className="text-2xl font-bold text-white flex items-center gap-2">
+            <Activity className="h-6 w-6" />
+            Live Mining Statistics
+          </h2>
+          <p className="text-gray-400 text-sm mt-1">
+            Real-time performance from SupportXMR pool
+          </p>
         </div>
-
-        <div className="flex items-center gap-2">
-          {isOnline ? (
-            <Wifi className="h-4 w-4 text-green-500" />
-          ) : (
-            <WifiOff className="h-4 w-4 text-red-500" />
-          )}
+        <div className="flex items-center gap-3">
           <Badge 
-            className={`${getStatusColor(minerData)} text-white font-medium`}
+            variant="outline" 
+            className={`${getStatusColor()} border-current`}
           >
-            {getStatusText(minerData)}
+            {getStatusIcon()}
+            <span className="ml-1 capitalize">{miningStats.status}</span>
           </Badge>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={fetchMiningData}
+            disabled={isLoading}
+            className="text-white border-gray-600 hover:bg-gray-700"
+          >
+            {isLoading ? (
+              <Loader2 className="h-4 w-4 animate-spin mr-2" />
+            ) : (
+              <RefreshCw className="h-4 w-4 mr-2" />
+            )}
+            Refresh
+          </Button>
         </div>
       </div>
 
       {/* Error Alert */}
       {error && (
-        <Alert className="border-red-500 bg-red-500/10">
-          <AlertTriangle className="h-4 w-4" />
-          <AlertDescription className="text-white">
-            <div className="flex items-center justify-between">
-              <div>
-                <strong>Connection Error:</strong> {error}
-                {retryCount > 0 && (
-                  <span className="block text-sm mt-1 text-gray-300">
-                    Retry attempt #{retryCount} • Using proxy: {currentProxy}
-                  </span>
-                )}
-              </div>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={fetchMiningData}
-                disabled={isLoading}
-                className="ml-4"
-              >
-                {isLoading ? (
-                  <Loader2 className="h-3 w-3 animate-spin" />
-                ) : (
-                  <RefreshCw className="h-3 w-3" />
-                )}
-              </Button>
-            </div>
+        <Alert className="bg-red-900/20 border-red-500/50">
+          <AlertTriangle className="h-4 w-4 text-red-400" />
+          <AlertDescription className="text-red-300">
+            {error}
           </AlertDescription>
         </Alert>
       )}
 
       {/* Main Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Hash Rate */}
+
+        {/* Current Hashrate */}
         <Card className="bg-gray-900/50 border-gray-700">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-gray-400 flex items-center">
               <Zap className="mr-2 h-4 w-4" />
-              Hash Rate
+              Current Hashrate
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -321,10 +242,30 @@ const LiveMiningStats: React.FC = () => {
               {isLoading ? (
                 <Loader2 className="h-6 w-6 animate-spin" />
               ) : (
-                formatHashRate(minerData?.hash || 0)
+                formatHashrate(miningStats.hashrate)
               )}
             </div>
-            <p className="text-xs text-gray-500 mt-1">Current mining speed</p>
+            <p className="text-xs text-gray-500 mt-1">Live performance</p>
+          </CardContent>
+        </Card>
+
+        {/* XMR Earned */}
+        <Card className="bg-gray-900/50 border-gray-700">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-gray-400 flex items-center">
+              <Coins className="mr-2 h-4 w-4" />
+              XMR Earned
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-white">
+              {isLoading ? (
+                <Loader2 className="h-6 w-6 animate-spin" />
+              ) : (
+                `${formatXMR(miningStats.xmrtEarned)} XMR`
+              )}
+            </div>
+            <p className="text-xs text-gray-500 mt-1">Amount due</p>
           </CardContent>
         </Card>
 
@@ -341,10 +282,10 @@ const LiveMiningStats: React.FC = () => {
               {isLoading ? (
                 <Loader2 className="h-6 w-6 animate-spin" />
               ) : (
-                (minerData?.validShares || 0).toLocaleString()
+                miningStats.validShares.toLocaleString()
               )}
             </div>
-            <p className="text-xs text-gray-500 mt-1">Total accepted shares</p>
+            <p className="text-xs text-gray-500 mt-1">Accepted work</p>
           </CardContent>
         </Card>
 
@@ -361,165 +302,76 @@ const LiveMiningStats: React.FC = () => {
               {isLoading ? (
                 <Loader2 className="h-6 w-6 animate-spin" />
               ) : (
-                (minerData?.totalHashes || 0).toLocaleString()
+                miningStats.totalHashes.toLocaleString()
               )}
             </div>
-            <p className="text-xs text-gray-500 mt-1">Lifetime computation</p>
-          </CardContent>
-        </Card>
-
-        {/* Amount Due */}
-        <Card className="bg-gray-900/50 border-gray-700">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-400 flex items-center">
-              <Coins className="mr-2 h-4 w-4" />
-              Amount Due
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-white">
-              {isLoading ? (
-                <Loader2 className="h-6 w-6 animate-spin" />
-              ) : (
-                `${formatXMR(minerData?.amtDue || 0)} XMR`
-              )}
-            </div>
-            <p className="text-xs text-gray-500 mt-1">Pending payout</p>
+            <p className="text-xs text-gray-500 mt-1">Lifetime work</p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Detailed Stats */}
+      {/* Detailed Information Card */}
       <Card className="bg-gray-900/50 border-gray-700">
         <CardHeader>
-          <CardTitle className="text-white flex items-center justify-between">
-            <span className="flex items-center">
-              <Server className="mr-2 h-5 w-5" />
-              Detailed Mining Information
-            </span>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={fetchMiningData}
-              disabled={isLoading}
-              className="text-gray-300 border-gray-600 hover:bg-gray-700"
-            >
-              {isLoading ? (
-                <>
-                  <Loader2 className="mr-2 h-3 w-3 animate-spin" />
-                  Loading...
-                </>
-              ) : (
-                <>
-                  <RefreshCw className="mr-2 h-3 w-3" />
-                  Refresh
-                </>
-              )}
-            </Button>
+          <CardTitle className="text-white flex items-center">
+            <Server className="mr-2 h-5 w-5" />
+            Mining Details
           </CardTitle>
+          <CardDescription className="text-gray-400">
+            Comprehensive mining performance metrics
+          </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-6">
-          {/* Miner Status */}
-          <div>
-            <h4 className="text-sm font-medium text-gray-300 mb-3 flex items-center">
-              <Activity className="mr-2 h-4 w-4" />
-              Miner Status
-            </h4>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="space-y-1">
-                <p className="text-xs text-gray-500">Workers Active</p>
-                <p className="text-lg font-medium text-white">
-                  {minerData?.hash > 0 ? "1" : "0"}
-                </p>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+
+            {/* XMR Paid */}
+            <div className="space-y-2">
+              <div className="flex items-center text-gray-400">
+                <DollarSign className="h-4 w-4 mr-2" />
+                <span className="text-sm">XMR Paid</span>
               </div>
-              <div className="space-y-1">
-                <p className="text-xs text-gray-500">Last Activity</p>
-                <p className="text-lg font-medium text-white">
-                  {minerData?.lastHash ? formatTimeAgo(minerData.lastHash * 1000) : "Never"}
-                </p>
+              <div className="text-lg font-semibold text-white">
+                {formatXMR(miningStats.xmrtPaid)} XMR
               </div>
-              <div className="space-y-1">
-                <p className="text-xs text-gray-500">Status</p>
-                <p className="text-lg font-medium text-white">
-                  {getStatusText(minerData)}
-                </p>
+            </div>
+
+            {/* Invalid Shares */}
+            <div className="space-y-2">
+              <div className="flex items-center text-gray-400">
+                <AlertTriangle className="h-4 w-4 mr-2" />
+                <span className="text-sm">Invalid Shares</span>
+              </div>
+              <div className="text-lg font-semibold text-white">
+                {miningStats.invalidShares.toLocaleString()}
+              </div>
+            </div>
+
+            {/* Last Update */}
+            <div className="space-y-2">
+              <div className="flex items-center text-gray-400">
+                <Clock className="h-4 w-4 mr-2" />
+                <span className="text-sm">Last Update</span>
+              </div>
+              <div className="text-lg font-semibold text-white">
+                {miningStats.lastUpdate.toLocaleTimeString()}
               </div>
             </div>
           </div>
 
           <Separator className="bg-gray-700" />
 
-          {/* Mining Efficiency */}
-          <div>
-            <h4 className="text-sm font-medium text-gray-300 mb-3 flex items-center">
-              <TrendingUp className="mr-2 h-4 w-4" />
-              Mining Efficiency
-            </h4>
-            <div className="space-y-2">
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-400">Share Acceptance Rate</span>
-                <span className="text-white">
-                  {minerData ? 
-                    (((minerData.validShares || 0) / Math.max((minerData.validShares || 0) + (minerData.invalidShares || 0), 1)) * 100).toFixed(1) : 
-                    "0"
-                  }%
-                </span>
-              </div>
-              <Progress 
-                value={minerData ? 
-                  ((minerData.validShares || 0) / Math.max((minerData.validShares || 0) + (minerData.invalidShares || 0), 1)) * 100 : 
-                  0
-                } 
-                className="h-2" 
-              />
+          {/* Wallet Address */}
+          <div className="space-y-2">
+            <div className="flex items-center text-gray-400">
+              <Wallet className="h-4 w-4 mr-2" />
+              <span className="text-sm">Mining Address</span>
             </div>
-          </div>
-
-          {/* Last Update */}
-          <div className="flex items-center justify-between text-sm text-gray-400">
-            <div className="flex items-center">
-              <Clock className="mr-2 h-4 w-4" />
-              Last updated: {lastUpdate?.toLocaleTimeString() || "Never"}
-            </div>
-            <div className="flex items-center">
-              <Wallet className="mr-2 h-4 w-4" />
-              XMRT DAO Wallet
+            <div className="text-sm font-mono text-white bg-gray-800 p-2 rounded border">
+              {WALLET_ADDRESS}
             </div>
           </div>
         </CardContent>
       </Card>
-
-      {/* Pool Statistics */}
-      {poolData && (
-        <Card className="bg-gray-900/50 border-gray-700">
-          <CardHeader>
-            <CardTitle className="text-white flex items-center">
-              <Users className="mr-2 h-5 w-5" />
-              SupportXMR Pool
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="text-center">
-                <p className="text-2xl font-bold text-white">{formatHashRate(poolData.poolHashrate)}</p>
-                <p className="text-xs text-gray-500">Pool Hashrate</p>
-              </div>
-              <div className="text-center">
-                <p className="text-2xl font-bold text-white">{poolData.connectedMiners.toLocaleString()}</p>
-                <p className="text-xs text-gray-500">Connected Miners</p>
-              </div>
-              <div className="text-center">
-                <p className="text-2xl font-bold text-white">{poolData.networkDifficulty.toLocaleString()}</p>
-                <p className="text-xs text-gray-500">Network Difficulty</p>
-              </div>
-              <div className="text-center">
-                <p className="text-2xl font-bold text-white">{poolData.blockHeight.toLocaleString()}</p>
-                <p className="text-xs text-gray-500">Block Height</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
     </div>
   );
 };
