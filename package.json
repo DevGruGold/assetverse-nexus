@@ -1,7 +1,7 @@
 {
-  "name": "vite_react_shadcn_ts",
+  "name": "xmrt-dao-platform",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -91,5 +91,25 @@
     "typescript": "^5.5.3",
     "typescript-eslint": "^8.0.1",
     "vite": "^5.4.1"
-  }
+  },
+  "description": "XMRT DAO - Decentralized Mobile Mining Ecosystem with live SupportXMR integration",
+  "homepage": "https://xmrtdao.vercel.app",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/DevGruGold/assetverse-nexus.git"
+  },
+  "keywords": [
+    "xmrt",
+    "dao",
+    "monero",
+    "mining",
+    "mobile",
+    "blockchain",
+    "privacy",
+    "web3",
+    "decentralized",
+    "supportxmr"
+  ],
+  "author": "XMRT DAO Community",
+  "license": "MIT"
 }
