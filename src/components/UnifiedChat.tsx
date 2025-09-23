@@ -473,13 +473,28 @@ const UnifiedChatInner: React.FC<UnifiedChatProps> = ({
       
     } catch (error) {
       console.error('Failed to process voice input:', error);
-      const errorMessage: UnifiedMessage = {
+
+      // Determine specific error type for better user feedback
+      let errorMessage: string;
+      if (error instanceof Error) {
+        if (error.message.includes('API') || error.message.includes('key')) {
+          errorMessage = 'I need a valid API key to process your request. Please click the 🔑 button above to add your Gemini API key.';
+        } else if (error.message.includes('network') || error.message.includes('fetch')) {
+          errorMessage = 'I\'m having trouble connecting to my services. Please check your internet connection and try again.';
+        } else {
+          errorMessage = 'I apologize, but I\'m having trouble processing your request right now. Please try again in a moment.';
+        }
+      } else {
+        errorMessage = 'I apologize, but I\'m having trouble processing your request right now. Please try again in a moment.';
+      }
+
+      const errorMessageObj: UnifiedMessage = {
         id: `error-${Date.now()}`,
-        content: 'I apologize, but I\'m having trouble processing your voice input right now.',
+        content: errorMessage,
         sender: 'assistant',
         timestamp: new Date()
       };
-      setMessages(prev => [...prev, errorMessage]);
+      setMessages(prev => [...prev, errorMessageObj]);
     } finally {
       setIsProcessing(false);
     }
