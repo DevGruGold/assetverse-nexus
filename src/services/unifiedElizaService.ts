@@ -251,13 +251,31 @@ export class UnifiedElizaService {
     }
   }
 
-  // Enhanced fallback response with new capabilities
-  private static generateEnhancedFallbackResponse(context: ElizaContext): string {
+  // Enhanced fallback response with local LLM integration
+  private static async generateEnhancedFallbackResponse(context: ElizaContext): Promise<string> {
     const capabilities = [];
 
     if (context.enableBrowsing) capabilities.push("web browsing");
     if (context.enableWebAutomation) capabilities.push("web automation");
     if (context.enableGitHubOps) capabilities.push("GitHub operations");
+
+    // Try local LLM first
+    try {
+      const { localLLMService } = await import('./localLLMService');
+      
+      if (localLLMService.isReady()) {
+        console.log('🤖 Using local LLM for response generation...');
+        return await localLLMService.generateXMRTResponse(
+          "Provide information about XMRT DAO and available capabilities",
+          { miningStats: context.miningStats, userContext: context.userContext }
+        );
+      } else if (!localLLMService.isLoading()) {
+        console.log('🔄 Initializing local LLM...');
+        localLLMService.initialize().catch(console.error);
+      }
+    } catch (error) {
+      console.warn('⚠️ Local LLM not available:', error);
+    }
 
     const capabilityText = capabilities.length > 0 
       ? ` I can still help you with ${capabilities.join(', ')} and provide information from our knowledge base.`
@@ -272,6 +290,8 @@ export class UnifiedElizaService {
 ${context.enableWebAutomation ? '- Web automation and scraping' : ''}
 ${context.enableGitHubOps ? '- Repository management and analysis' : ''}
 ${context.enableBrowsing ? '- Web research and data collection' : ''}
+
+💡 **Local AI Assistant**: I'm also loading a local AI model that will provide better responses without requiring API keys. This may take a moment to initialize.
 
 Feel free to ask about mining performance, blockchain technology, or any XMRT-related topics!`;
   }
@@ -337,10 +357,36 @@ Feel free to ask about mining performance, blockchain technology, or any XMRT-re
       // Initialize enhanced Gemini AI
       const geminiResult = await this.initializeGemini();
 
+      // If Gemini is not available, try local LLM for user input
       if (!geminiResult.success) {
-        console.warn('⚠️ Falling back to enhanced response due to Gemini unavailability');
+        console.warn('⚠️ Gemini unavailable, trying local LLM for user input...');
+        
+        try {
+          const { localLLMService } = await import('./localLLMService');
+          
+          if (localLLMService.isReady()) {
+            console.log('🤖 Using local LLM for user input processing...');
+            const localResponse = await localLLMService.generateXMRTResponse(input, {
+              miningStats,
+              userContext
+            });
+            
+            return {
+              response: localResponse,
+              shouldSpeak: context.shouldSpeak,
+              context: { ...context, miningStats, userContext }
+            };
+          } else if (!localLLMService.isLoading()) {
+            console.log('🔄 Initializing local LLM for user input...');
+            localLLMService.initialize().catch(console.error);
+          }
+        } catch (error) {
+          console.warn('⚠️ Local LLM not available for user input:', error);
+        }
+        
+        const fallbackResponse = await this.generateEnhancedFallbackResponse(context);
         return {
-          response: this.generateEnhancedFallbackResponse(context),
+          response: fallbackResponse,
           shouldSpeak: context.shouldSpeak,
           context: { ...context, miningStats, userContext }
         };
@@ -412,8 +458,9 @@ Respond as Eliza with your enhanced intelligence and capabilities:`;
     } catch (error) {
       console.error('❌ Enhanced processing error:', error);
 
+      const fallbackResponse = await this.generateEnhancedFallbackResponse(context);
       return {
-        response: this.generateEnhancedFallbackResponse(context),
+        response: fallbackResponse,
         shouldSpeak: context.shouldSpeak,
         context
       };

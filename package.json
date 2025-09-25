@@ -17,8 +17,10 @@
     "@11labs/react": "^0.2.0",
     "@google/generative-ai": "^0.21.0",
     "@hookform/resolvers": "^3.9.0",
-    "@huggingface/transformers": "^3.7.2",
+    "@huggingface/transformers": "^3.7.3",
     "@humeai/voice-react": "^0.2.3",
+    "@octokit/rest": "^20.1.1",
+    "@octokit/types": "^12.6.0",
     "@radix-ui/react-accordion": "^1.2.0",
     "@radix-ui/react-alert-dialog": "^1.1.1",
     "@radix-ui/react-aspect-ratio": "^1.1.0",
@@ -56,6 +58,8 @@
     "input-otp": "^1.2.4",
     "lucide-react": "^0.451.0",
     "next-themes": "^0.3.0",
+    "playwright": "^1.45.0",
+    "playwright-core": "^1.45.0",
     "react": "^18.3.1",
     "react-day-picker": "^8.10.1",
     "react-dom": "^18.3.1",
@@ -67,14 +71,11 @@
     "tailwind-merge": "^2.5.2",
     "tailwindcss-animate": "^1.0.7",
     "vaul": "^0.9.3",
-    "zod": "^3.23.8",
-    "playwright": "^1.45.0",
-    "@octokit/rest": "^20.1.1",
-    "@octokit/types": "^12.6.0",
-    "playwright-core": "^1.45.0"
+    "zod": "^3.23.8"
   },
   "devDependencies": {
     "@eslint/js": "^9.9.0",
+    "@playwright/test": "^1.45.0",
     "@tailwindcss/typography": "^0.5.15",
     "@types/node": "^22.5.5",
     "@types/react": "^18.3.3",
@@ -90,8 +91,7 @@
     "tailwindcss": "^3.4.11",
     "typescript": "^5.5.3",
     "typescript-eslint": "^8.0.1",
-    "vite": "^5.4.1",
-    "@playwright/test": "^1.45.0"
+    "vite": "^5.4.1"
   },
   "description": "XMRT DAO - Enhanced Decentralized Mobile Mining Ecosystem with AI-powered web automation, real-time SupportXMR integration, GitHub operations, and privacy-first design",
   "homepage": "https://xmrtdao.vercel.app",

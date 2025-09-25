@@ -5,6 +5,7 @@ import { Input } from './ui/input';
 import { Badge } from './ui/badge';
 import { ScrollArea } from './ui/scroll-area';
 import { AdaptiveAvatar } from './AdaptiveAvatar';
+import { LocalLLMStatus } from './LocalLLMStatus';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { GeminiAPIKeyInput } from './GeminiAPIKeyInput';
 import { TaskApprovalInterface } from './TaskApprovalInterface';
@@ -715,6 +716,9 @@ const UnifiedChatInner: React.FC<UnifiedChatProps> = ({
             <div>
               <h3 className="font-semibold text-foreground text-sm sm:text-base">Eliza AI</h3>
               <p className="text-xs text-muted-foreground">Your XMRT Assistant</p>
+            </div>
+            <div className="ml-2">
+              <LocalLLMStatus />
             </div>
           </div>
 
