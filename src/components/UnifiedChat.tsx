@@ -325,13 +325,29 @@ const UnifiedChatInner: React.FC<UnifiedChatProps> = ({
       const data = await response.json();
       
       setMiningStats({
-        hashRate: data.hash || 0,
-        validShares: data.validShares || 0,
+        hash: data.hash || 0,
+        identifier: data.identifier || 'global',
+        lastHash: data.lastHash || 0,
         totalHashes: data.totalHashes || 0,
-        amountDue: (data.amtDue || 0) / 1000000000000,
-        amountPaid: (data.amtPaid || 0) / 1000000000000,
-        isOnline: data.lastHash > (Date.now() / 1000) - 300,
-        lastUpdate: new Date()
+        validShares: data.validShares || 0,
+        invalidShares: data.invalidShares || 0,
+        amtDue: ((data.amtDue || 0) / 1000000000000).toString(),
+        amtPaid: ((data.amtPaid || 0) / 1000000000000).toString(),
+        txnCount: data.txnCount || 0,
+        workerContext: {
+          canIdentifyWorker: false,
+          detectedWorker: null,
+          registrationRequired: false,
+          clientIP: ''
+        },
+        historyData: {
+          hasHistory: false
+        },
+        paymentsData: {
+          hasPayments: false
+        },
+        lastUpdate: new Date().toISOString(),
+        status: 'live' as const
       });
     } catch (err) {
       console.error('Failed to fetch mining stats:', err);
@@ -420,7 +436,7 @@ const UnifiedChatInner: React.FC<UnifiedChatProps> = ({
 
     try {
       
-      const response = await UnifiedElizaService.generateResponse(transcript, {
+      const result = await UnifiedElizaService.generateResponse(transcript, {
         miningStats,
         userContext,
         inputMode: 'voice',
@@ -431,18 +447,18 @@ const UnifiedChatInner: React.FC<UnifiedChatProps> = ({
 
       const elizaMessage: UnifiedMessage = {
         id: `eliza-${Date.now()}`,
-        content: response,
+        content: result.response,
         sender: 'assistant',
         timestamp: new Date(),
         confidence: 0.95
       };
 
       setMessages(prev => [...prev, elizaMessage]);
-      setLastElizaMessage(response);
+      setLastElizaMessage(result.response);
       
       // Store Eliza's response
       try {
-        await conversationPersistence.storeMessage(response, 'assistant', {
+        await conversationPersistence.storeMessage(result.response, 'assistant', {
           confidence: 0.95,
           method: 'Gemini AI',
           inputType: 'voice'
@@ -459,7 +475,7 @@ const UnifiedChatInner: React.FC<UnifiedChatProps> = ({
           // Add small delay in voice mode to let speech recognition settle
           await new Promise(resolve => setTimeout(resolve, 500));
           
-          await geminiTTSService.speakText({ text: response }, () => {
+          await geminiTTSService.speakText({ text: result.response }, () => {
             setIsSpeaking(false);
           });
           setCurrentTTSMethod('Gemini TTS');
@@ -574,7 +590,7 @@ const UnifiedChatInner: React.FC<UnifiedChatProps> = ({
       // Get full conversation context for better AI understanding
       const fullContext = await conversationPersistence.getFullConversationContext();
       
-      const response = await UnifiedElizaService.generateResponse(textInput.trim(), {
+      const result = await UnifiedElizaService.generateResponse(textInput.trim(), {
         miningStats,
         userContext,
         inputMode: 'text',
@@ -582,29 +598,29 @@ const UnifiedChatInner: React.FC<UnifiedChatProps> = ({
         enableBrowsing: true,  // Let the service decide when to browse
         conversationContext: fullContext,  // Enhanced context for better understanding
         sessionKey: 'unified-chat-session'  // Add session key for task tracking
-      }, language);
+      });
       
       // Check if response indicates API key is needed
-      if (response.includes('🔑 **To restore full AI capabilities:**')) {
+      if (result.response.includes('🔑 **To restore full AI capabilities:**')) {
         setNeedsAPIKey(true);
       }
       
-      console.log('✅ Response generated:', response.substring(0, 100) + '...');
+      console.log('✅ Response generated:', result.response.substring(0, 100) + '...');
 
       const elizaMessage: UnifiedMessage = {
         id: `eliza-${Date.now()}`,
-        content: response,
+        content: result.response,
         sender: 'assistant',
         timestamp: new Date(),
         confidence: 0.95
       };
 
       setMessages(prev => [...prev, elizaMessage]);
-      setLastElizaMessage(response);
+      setLastElizaMessage(result.response);
       
       // Store Eliza's response
       try {
-        await conversationPersistence.storeMessage(response, 'assistant', {
+        await conversationPersistence.storeMessage(result.response, 'assistant', {
           confidence: 0.95,
           method: 'Gemini AI',
           inputType: 'text'
@@ -617,7 +633,7 @@ const UnifiedChatInner: React.FC<UnifiedChatProps> = ({
       if (voiceEnabled && geminiTTSService) {
         try {
           setIsSpeaking(true);
-          await geminiTTSService.speakText({ text: response }, () => {
+          await geminiTTSService.speakText({ text: result.response }, () => {
             setIsSpeaking(false);
           });
           setCurrentTTSMethod('Gemini TTS');

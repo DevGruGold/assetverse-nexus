@@ -218,11 +218,12 @@ export const EnhancedVoiceInterface: React.FC<EnhancedVoiceInterfaceProps> = ({
         // Generate AI response using UnifiedElizaService (Gemini)
         try {
           console.log('🤖 Generating AI response with Gemini...');
-          response = await UnifiedElizaService.generateResponse(transcript, {
+          const result = await UnifiedElizaService.generateResponse(transcript, {
             miningStats: undefined,
             userContext: undefined,
             shouldSpeak: false // Prevent duplication since we handle TTS here
           });
+          response = result.response;
           
           // Speak response with emotional context
           if (voiceEnabled && elevenLabsService) {

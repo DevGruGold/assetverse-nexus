@@ -111,14 +111,19 @@ class SupportXMRService {
     const url = `${this.config.baseUrl}/miner_stats?address=${this.config.address}`;
 
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
+      
       const response = await fetch(url, {
         method: 'GET',
         headers: {
           'Accept': 'application/json',
           'User-Agent': 'XMRT-DAO/1.0'
         },
-        timeout: 10000 // 10 second timeout
+        signal: controller.signal
       });
+      
+      clearTimeout(timeoutId);
 
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);

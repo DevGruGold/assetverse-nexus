@@ -125,45 +125,16 @@ export class UnifiedElizaService {
     if (miningStats.hash > 0) {
       const hashrateKH = (miningStats.hash / 1000).toFixed(2);
       insights.push(`Currently mining at ${hashrateKH} KH/s`);
-
-      if (miningStats.enhancedMetrics) {
-        const efficiency = miningStats.enhancedMetrics.shareEfficiency;
-        if (efficiency > 98) {
-          insights.push("Excellent share efficiency! Your setup is optimized.");
-        } else if (efficiency > 95) {
-          insights.push("Good share efficiency. Minor optimizations possible.");
-        } else {
-          insights.push("Share efficiency could be improved. Check network stability.");
-        }
-      }
     }
 
-    // Worker context analysis
-    if (miningStats.workerContext) {
-      const ctx = miningStats.workerContext;
-      if (ctx.isOnline) {
-        insights.push(`${ctx.activeWorkers?.length || 1} active worker(s) detected`);
-
-        if (ctx.avgHashrate && ctx.avgHashrate !== miningStats.hash) {
-          const variance = ((miningStats.hash - ctx.avgHashrate) / ctx.avgHashrate * 100).toFixed(1);
-          insights.push(`Current hashrate is ${variance}% ${parseFloat(variance) > 0 ? 'above' : 'below'} average`);
-        }
-      } else {
-        insights.push("⚠️ No active workers detected. Check your mining setup.");
-      }
-    }
-
-    // Pool contribution analysis
-    if (miningStats.enhancedMetrics?.poolContribution) {
-      const contribution = parseFloat(miningStats.enhancedMetrics.poolContribution);
-      if (contribution > 0.001) {
-        insights.push(`Contributing ${contribution.toFixed(6)}% to the pool's total hashrate`);
-      }
+    // Worker context analysis - using the correct structure
+    if (miningStats.workerContext && miningStats.workerContext.detectedWorker) {
+      insights.push(`Worker detected: ${miningStats.workerContext.detectedWorker}`);
     }
 
     // Earnings analysis
     if (miningStats.amtDue) {
-      const pending = parseFloat(miningStats.amtDue);
+      const pending = parseFloat(miningStats.amtDue.toString()) / 1000000000000; // Convert from atomic units
       if (pending > 0.003) {
         insights.push(`${pending.toFixed(8)} XMR ready for payout`);
       } else {
@@ -333,7 +304,7 @@ Feel free to ask about mining performance, blockchain technology, or any XMRT-re
       const xmrtContext = XMRT_KNOWLEDGE_BASE.filter(item =>
         input.toLowerCase().split(' ').some(word => 
           item.keywords.some(keyword => keyword.toLowerCase().includes(word)) ||
-          item.title.toLowerCase().includes(word)
+          item.topic.toLowerCase().includes(word)
         )
       );
 
@@ -392,13 +363,12 @@ ${miningIntelligence || 'Mining data not available'}
 **Mining Context:**
 ${miningStats ? JSON.stringify({
   hashrate: miningStats.hash,
-  isOnline: miningStats.workerContext?.isOnline,
-  amtDue: miningStats.amtDue,
-  efficiency: miningStats.enhancedMetrics?.shareEfficiency
+  detectedWorker: miningStats.workerContext?.detectedWorker,
+  amtDue: miningStats.amtDue
 }, null, 2) : 'No mining data available'}
 
 **Knowledge Base Context:**
-${xmrtContext.map(item => `- ${item.title}: ${item.content}`).join('\n').substring(0, 1500)}
+${xmrtContext.map(item => `- ${item.topic}: ${item.content}`).join('\n').substring(0, 1500)}
 
 **Enhanced Capabilities:**
 - Analyze mining performance and provide optimization suggestions
@@ -448,6 +418,23 @@ Respond as Eliza with your enhanced intelligence and capabilities:`;
         context
       };
     }
+  }
+
+  // Backward compatibility methods
+  static async generateResponse(
+    input: string,
+    context: any = {}
+  ): Promise<{ response: string; shouldSpeak?: boolean }> {
+    const result = await this.processEnhancedInput(input, context);
+    return {
+      response: result.response,
+      shouldSpeak: result.shouldSpeak
+    };
+  }
+
+  static async resetGeminiInstance(): Promise<void> {
+    this.geminiAI = null;
+    console.log('🔄 Gemini instance reset');
   }
 
   // Cleanup resources
