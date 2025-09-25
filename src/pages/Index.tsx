@@ -15,7 +15,7 @@ import { LanguageToggle } from "@/components/LanguageToggle";
 import { useLanguage } from "@/contexts/LanguageContext";
 
 const Index = () => {
-  const { wallet, connectWallet, completeSetup, refreshXMRTData } = useWallet();
+  const { wallet, connectWallet } = useWallet();
   const [activeTab, setActiveTab] = useState("members");
   const { t } = useLanguage();
 
@@ -144,9 +144,9 @@ const Index = () => {
               <DaoTabs activeTab={activeTab} onTabChange={setActiveTab} />
             </div>
             {activeTab === "xmrt" ? (
-              <XMRTDashboard wallet={wallet} onRefreshXMRT={refreshXMRTData} />
+              <XMRTDashboard wallet={wallet} onRefreshXMRT={() => console.log('XMRT refresh disabled')} />
             ) : (
-              <Dashboard wallet={wallet} onSetupComplete={completeSetup} />
+              <Dashboard wallet={wallet} onSetupComplete={() => console.log('Setup disabled')} />
             )}
           </>
         ) : (

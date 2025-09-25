@@ -439,6 +439,3 @@ export const XMRT_GITHUB_CONFIG: GitHubConfig = {
 
 // Create and export default instance
 export const githubService = createEnhancedGitHubService(XMRT_GITHUB_CONFIG);
-
-// Export types for use in other services
-export type { GitHubConfig, RepositoryStatus, CommitAnalysis, RepositoryAnalysis };

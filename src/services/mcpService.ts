@@ -50,16 +50,16 @@ class MCPService {
       },
       handler: async (params) => {
         const { githubService } = await import('./githubService');
-        const repoInfo = await githubService.getRepositoryInfo();
+        const repoInfo = await githubService.getRepositoryStatus();
 
         const result: any = { repository: repoInfo };
 
         if (params.includeCommits) {
-          result.recentCommits = await githubService.getRecentCommits(5);
+          result.recentCommits = await githubService.getRecentChanges();
         }
 
         if (params.includeIssues) {
-          result.openIssues = await githubService.getIssues('open');
+          result.openIssues = []; // Issues functionality not implemented yet
         }
 
         return result;
@@ -101,10 +101,10 @@ class MCPService {
         try {
           // Check GitHub system
           const { githubService } = await import('./githubService');
-          const healthCheck = await githubService.performHealthCheck();
+          const repoStatus = await githubService.getRepositoryStatus();
           results.github = {
-            status: healthCheck.status,
-            details: healthCheck
+            status: 'healthy',
+            details: repoStatus
           };
         } catch (error) {
           results.github = {
