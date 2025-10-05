@@ -5,6 +5,8 @@ export class LocalLLMService {
   private textGenerator: any = null;
   private modelLoading = false;
   private loadPromise: Promise<void> | null = null;
+  private downloadProgress = 0;
+  private progressCallbacks: Set<(progress: number) => void> = new Set();
 
   private constructor() {}
 
@@ -27,12 +29,24 @@ export class LocalLLMService {
     this.modelLoading = false;
   }
 
+  onProgress(callback: (progress: number) => void): () => void {
+    this.progressCallbacks.add(callback);
+    return () => this.progressCallbacks.delete(callback);
+  }
+
+  private notifyProgress(progress: number) {
+    this.downloadProgress = progress;
+    this.progressCallbacks.forEach(cb => cb(progress));
+  }
+
   private async loadModel(): Promise<void> {
     try {
       console.log('🤖 Loading local LLM model...');
+      this.notifyProgress(10);
       
       // Use a small, efficient model that can run in browser
       // DistilGPT-2 is a good balance of size and capability
+      this.notifyProgress(30);
       this.textGenerator = await pipeline(
         'text-generation',
         'distilgpt2',
@@ -42,9 +56,11 @@ export class LocalLLMService {
         }
       );
       
+      this.notifyProgress(100);
       console.log('✅ Local LLM model loaded successfully');
     } catch (error) {
       console.warn('⚠️ WebGPU not available, falling back to CPU');
+      this.notifyProgress(40);
       
       try {
         // Fallback to CPU if WebGPU fails
@@ -57,12 +73,18 @@ export class LocalLLMService {
           }
         );
         
+        this.notifyProgress(100);
         console.log('✅ Local LLM model loaded on CPU');
       } catch (cpuError) {
         console.error('❌ Failed to load local LLM model:', cpuError);
+        this.notifyProgress(0);
         throw cpuError;
       }
     }
+  }
+
+  getProgress(): number {
+    return this.downloadProgress;
   }
 
   async generateResponse(prompt: string, options: {

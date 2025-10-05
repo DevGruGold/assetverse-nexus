@@ -2,6 +2,7 @@ import { WalletState } from "@/hooks/useWallet";
 import { useState } from "react";
 import AssetTypeSelector from "./AssetTypeSelector";
 import WorkflowSteps from "./WorkflowSteps";
+import { LocalLLMStatus } from "./LocalLLMStatus";
 
 interface DashboardProps {
   wallet: WalletState;
@@ -27,6 +28,7 @@ const Dashboard = ({ wallet, onSetupComplete }: DashboardProps) => {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
         <AssetTypeSelector assetType={assetType} onAssetTypeChange={setAssetType} />
+        <LocalLLMStatus />
       </div>
       <WorkflowSteps assetType={assetType} />
     </div>

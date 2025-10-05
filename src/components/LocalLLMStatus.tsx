@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Progress } from '@/components/ui/progress';
 import { Brain, Download, CheckCircle, Loader2 } from 'lucide-react';
 import { localLLMService } from '@/services/localLLMService';
 
@@ -9,16 +10,22 @@ export const LocalLLMStatus: React.FC = () => {
   const [isReady, setIsReady] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [progress, setProgress] = useState(0);
 
   const checkStatus = () => {
     setIsReady(localLLMService.isReady());
     setIsLoading(localLLMService.isLoading());
+    setProgress(localLLMService.getProgress());
   };
 
   useEffect(() => {
     checkStatus();
-    const interval = setInterval(checkStatus, 1000);
-    return () => clearInterval(interval);
+    const interval = setInterval(checkStatus, 500);
+    const unsubscribe = localLLMService.onProgress(setProgress);
+    return () => {
+      clearInterval(interval);
+      unsubscribe();
+    };
   }, []);
 
   const initializeModel = async () => {
@@ -65,11 +72,18 @@ export const LocalLLMStatus: React.FC = () => {
           </div>
         )}
 
+        {isLoading && progress > 0 && (
+          <div className="space-y-2">
+            <Progress value={progress} className="h-2" />
+            <p className="text-xs text-muted-foreground text-center">{progress}%</p>
+          </div>
+        )}
+
         <div className="text-xs text-muted-foreground">
           {isReady ? (
             "Local AI model loaded successfully. No API keys required!"
           ) : isLoading ? (
-            "Downloading and initializing DistilGPT-2 model..."
+            "Downloading and initializing DistilGPT-2 model (~80MB)..."
           ) : (
             "Initialize local AI for offline responses."
           )}
