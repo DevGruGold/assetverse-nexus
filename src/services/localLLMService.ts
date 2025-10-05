@@ -49,30 +49,30 @@ export class LocalLLMService {
         this.notifyProgress(30);
         this.textGenerator = await pipeline(
           'text-generation',
-          'Xenova/distilgpt2',
+          'onnx-community/Qwen2.5-0.5B-Instruct',
           {
             device: 'webgpu',
-            dtype: 'fp16',
+            dtype: 'q4',
           }
         );
         
         this.notifyProgress(100);
-        console.log('✅ Local LLM model loaded with WebGPU');
+        console.log('✅ Local LLM model loaded with WebGPU (Qwen2.5-0.5B)');
         return;
       } catch (webgpuError) {
-        console.warn('⚠️ WebGPU not available, falling back to WASM');
+        console.warn('⚠️ WebGPU not available, using mobile-optimized fallback');
         this.notifyProgress(40);
       }
       
-      // Fallback: Let library automatically use WASM (works on all devices including mobile)
+      // Fallback: Use quantized model for mobile (WASM)
       this.textGenerator = await pipeline(
         'text-generation',
-        'Xenova/distilgpt2'
-        // No device parameter - library automatically uses WASM when WebGPU unavailable
+        'onnx-community/Qwen2.5-0.5B-Instruct',
+        { dtype: 'q8' } // 8-bit quantization for mobile
       );
       
       this.notifyProgress(100);
-      console.log('✅ Local LLM model loaded (automatic WASM fallback)');
+      console.log('✅ Local LLM model loaded for mobile (Qwen2.5-0.5B-q8)');
       
     } catch (error) {
       console.error('❌ Failed to load local LLM model:', error);
