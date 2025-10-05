@@ -42,8 +42,13 @@ Your role is to:
 2. **execute_task** - Actually execute tasks when users want them run
 3. **get_mining_stats** - Fetch real-time mining data from SupportXMR
 4. **log_activity** - Track your actions for transparency
+5. **query_tasks** - Read tasks from the database, filter by status
+6. **query_logs** - View your own activity logs and system logs
+7. **query_agents** - Check agent information and status
+8. **query_conversations** - Access conversation history
+9. **query_repos** - Look up repository information
 
-**IMPORTANT**: When users ask you to "create a task" or "execute" something, USE THESE FUNCTIONS instead of just talking about it. You're not just a chatbot - you can actually do things!
+**IMPORTANT**: When users ask you to "check tasks", "show me logs", "what agents do we have", or similar questions, USE THESE FUNCTIONS to actually query the database and give them real data. You're not just a chatbot - you have direct database access!
 
 ## Your Supabase Infrastructure Knowledge
 
@@ -222,6 +227,78 @@ When discussing mining stats, use these EXACT values. The XMR amounts have alrea
             required: ["activity_type", "title"]
           }
         }
+      },
+      {
+        type: "function",
+        function: {
+          name: "query_tasks",
+          description: "Query tasks from the database. Can filter by status, category, or get all tasks.",
+          parameters: {
+            type: "object",
+            properties: {
+              status: { type: "string", description: "Filter by task status (PENDING, IN_PROGRESS, COMPLETED, etc.)" },
+              limit: { type: "number", description: "Maximum number of tasks to return (default 10)" }
+            },
+            required: []
+          }
+        }
+      },
+      {
+        type: "function",
+        function: {
+          name: "query_logs",
+          description: "Query activity logs to see what actions have been performed.",
+          parameters: {
+            type: "object",
+            properties: {
+              activity_type: { type: "string", description: "Filter by activity type" },
+              limit: { type: "number", description: "Maximum number of logs to return (default 20)" }
+            },
+            required: []
+          }
+        }
+      },
+      {
+        type: "function",
+        function: {
+          name: "query_agents",
+          description: "Query agent information to see available agents and their capabilities.",
+          parameters: {
+            type: "object",
+            properties: {
+              status: { type: "string", description: "Filter by agent status" }
+            },
+            required: []
+          }
+        }
+      },
+      {
+        type: "function",
+        function: {
+          name: "query_conversations",
+          description: "Query recent conversation messages and sessions.",
+          parameters: {
+            type: "object",
+            properties: {
+              limit: { type: "number", description: "Maximum number of messages to return (default 10)" }
+            },
+            required: []
+          }
+        }
+      },
+      {
+        type: "function",
+        function: {
+          name: "query_repos",
+          description: "Query repository information from the repos table.",
+          parameters: {
+            type: "object",
+            properties: {
+              category: { type: "string", description: "Filter by repository category" }
+            },
+            required: []
+          }
+        }
       }
     ];
 
@@ -304,6 +381,21 @@ When discussing mining stats, use these EXACT values. The XMR amounts have alrea
               break;
             case 'log_activity':
               result = await handleLogActivity(functionArgs);
+              break;
+            case 'query_tasks':
+              result = await handleQueryTasks(functionArgs);
+              break;
+            case 'query_logs':
+              result = await handleQueryLogs(functionArgs);
+              break;
+            case 'query_agents':
+              result = await handleQueryAgents(functionArgs);
+              break;
+            case 'query_conversations':
+              result = await handleQueryConversations(functionArgs);
+              break;
+            case 'query_repos':
+              result = await handleQueryRepos(functionArgs);
               break;
             default:
               result = { error: `Unknown function: ${functionName}` };
@@ -509,4 +601,119 @@ async function handleLogActivity(args: any) {
   }
 
   return { success: true, data };
+}
+
+async function handleQueryTasks(args: any) {
+  const supabaseClient = createClient(
+    Deno.env.get('SUPABASE_URL') ?? '',
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+  );
+
+  let query = supabaseClient
+    .from('tasks')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .limit(args.limit || 10);
+
+  if (args.status) {
+    query = query.eq('status', args.status);
+  }
+
+  const { data, error } = await query;
+
+  if (error) {
+    return { success: false, error: error.message };
+  }
+
+  return { success: true, count: data.length, tasks: data };
+}
+
+async function handleQueryLogs(args: any) {
+  const supabaseClient = createClient(
+    Deno.env.get('SUPABASE_URL') ?? '',
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+  );
+
+  let query = supabaseClient
+    .from('eliza_activity_log')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .limit(args.limit || 20);
+
+  if (args.activity_type) {
+    query = query.eq('activity_type', args.activity_type);
+  }
+
+  const { data, error } = await query;
+
+  if (error) {
+    return { success: false, error: error.message };
+  }
+
+  return { success: true, count: data.length, logs: data };
+}
+
+async function handleQueryAgents(args: any) {
+  const supabaseClient = createClient(
+    Deno.env.get('SUPABASE_URL') ?? '',
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+  );
+
+  let query = supabaseClient
+    .from('agents')
+    .select('*');
+
+  if (args.status) {
+    query = query.eq('status', args.status);
+  }
+
+  const { data, error } = await query;
+
+  if (error) {
+    return { success: false, error: error.message };
+  }
+
+  return { success: true, count: data.length, agents: data };
+}
+
+async function handleQueryConversations(args: any) {
+  const supabaseClient = createClient(
+    Deno.env.get('SUPABASE_URL') ?? '',
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+  );
+
+  const { data, error } = await supabaseClient
+    .from('conversation_messages')
+    .select('id, content, message_type, timestamp, session_id')
+    .order('timestamp', { ascending: false })
+    .limit(args.limit || 10);
+
+  if (error) {
+    return { success: false, error: error.message };
+  }
+
+  return { success: true, count: data.length, messages: data };
+}
+
+async function handleQueryRepos(args: any) {
+  const supabaseClient = createClient(
+    Deno.env.get('SUPABASE_URL') ?? '',
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+  );
+
+  let query = supabaseClient
+    .from('repos')
+    .select('*');
+
+  if (args.category) {
+    query = query.eq('category', args.category);
+  }
+
+  const { data, error } = await query;
+
+  if (error) {
+    return { success: false, error: error.message };
+  }
+
+  return { success: true, count: data.length, repos: data };
 }
