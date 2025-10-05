@@ -19,9 +19,10 @@ const getDemoMiningData = () => {
     totalHashes: Math.floor(Math.random() * 5000000) + 1000000,
     validShares: Math.floor(Math.random() * 2000) + 500,
     invalidShares: Math.floor(Math.random() * 5),
-    amtDue: (Math.random() * 0.02 + 0.005).toFixed(8),
-    amtPaid: (Math.random() * 0.5 + 0.1).toFixed(8),
+    amtDue: Math.floor((Math.random() * 0.02 + 0.005) * 1000000000000), // In atomic units
+    amtPaid: Math.floor((Math.random() * 0.5 + 0.1) * 1000000000000), // In atomic units
     txnCount: Math.floor(Math.random() * 30) + 10,
+    walletAddress: Deno.env.get('MINER_WALLET_ADDRESS') || '46UxNFuGM2E3UwmZWWJicaRPoRwqwW4byQkaTHkX8yPcVihp91qAVtSFipWUGJJUyTXgzSqxzDQtNLf2bsp2DX2qCCgC5mg',
     workerContext: {
       isOnline: true,
       lastSeen: now,
@@ -204,9 +205,10 @@ const processAndValidateMinerData = (results: any, poolStats: any) => {
     totalHashes: stats.totalHashes || 0,
     validShares: stats.validShares || 0,
     invalidShares: stats.invalidShares || 0,
-    amtDue: parseFloat(stats.amtDue || '0').toFixed(8),
-    amtPaid: parseFloat(stats.amtPaid || '0').toFixed(8),
+    amtDue: stats.amtDue || 0, // Keep in atomic units
+    amtPaid: stats.amtPaid || 0, // Keep in atomic units
     txnCount: stats.txnCount || 0,
+    walletAddress: Deno.env.get('MINER_WALLET_ADDRESS') || '46UxNFuGM2E3UwmZWWJicaRPoRwqwW4byQkaTHkX8yPcVihp91qAVtSFipWUGJJUyTXgzSqxzDQtNLf2bsp2DX2qCCgC5mg',
     workerContext,
     enhancedMetrics: {
       shareEfficiency: parseFloat(shareEfficiency),

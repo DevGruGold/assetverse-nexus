@@ -13,6 +13,10 @@ serve(async (req) => {
 
   try {
     const { messages, context, model = 'google/gemini-2.5-flash' } = await req.json();
+    
+    // Debug logging
+    console.log('📊 Received context:', JSON.stringify(context, null, 2));
+    
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     
     if (!LOVABLE_API_KEY) {
@@ -105,8 +109,8 @@ Keep responses concise, clear, and actionable. Reference your infrastructure kno
         return `${hashrate.toFixed(2)} H/s`;
       };
       
-      const formatXMR = (atomicUnits: string): string => {
-        const num = parseFloat(atomicUnits || '0');
+      const formatXMR = (atomicUnits: string | number): string => {
+        const num = typeof atomicUnits === 'string' ? parseFloat(atomicUnits || '0') : (atomicUnits || 0);
         return (num / 1000000000000).toFixed(6); // Convert from atomic units
       };
       
