@@ -1,5 +1,6 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.57.4';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -31,7 +32,18 @@ Your role is to:
 - Provide information about XMRT DAO governance and tokens
 - Answer questions about mining statistics and performance
 - Guide users through the ecosystem
-- Be friendly, helpful, and knowledgeable about privacy-preserving technology
+- **ACTUALLY CREATE AND EXECUTE TASKS** - You have real functions you can call!
+- Be friendly, helpful, and proactive in taking action
+
+## Your Capabilities - YOU CAN DO THESE:
+
+### Function Calling Powers:
+1. **create_task** - Create real tasks in the database when users ask
+2. **execute_task** - Actually execute tasks when users want them run
+3. **get_mining_stats** - Fetch real-time mining data from SupportXMR
+4. **log_activity** - Track your actions for transparency
+
+**IMPORTANT**: When users ask you to "create a task" or "execute" something, USE THESE FUNCTIONS instead of just talking about it. You're not just a chatbot - you can actually do things!
 
 ## Your Supabase Infrastructure Knowledge
 
@@ -150,6 +162,69 @@ When discussing mining stats, use these EXACT values. The XMR amounts have alrea
 
     console.log('Calling Lovable AI Gateway with model:', model);
 
+    // Define tools that Eliza can use
+    const tools = [
+      {
+        type: "function",
+        function: {
+          name: "create_task",
+          description: "Create a new task in the autonomous task system. Use this when users ask you to create tasks, track actions, or organize work.",
+          parameters: {
+            type: "object",
+            properties: {
+              title: { type: "string", description: "Task title" },
+              description: { type: "string", description: "Task description" },
+              task_type: { type: "string", enum: ["github_operation", "repository_analysis", "ecosystem_management", "general"], description: "Type of task" },
+            },
+            required: ["title", "description", "task_type"]
+          }
+        }
+      },
+      {
+        type: "function",
+        function: {
+          name: "execute_task",
+          description: "Execute a pending task by its ID. Use this when users ask you to run, execute, or start a task.",
+          parameters: {
+            type: "object",
+            properties: {
+              task_id: { type: "string", description: "UUID of the task to execute" }
+            },
+            required: ["task_id"]
+          }
+        }
+      },
+      {
+        type: "function",
+        function: {
+          name: "get_mining_stats",
+          description: "Get real-time mining statistics from SupportXMR pool. Use this when users ask about current mining performance.",
+          parameters: {
+            type: "object",
+            properties: {},
+            required: []
+          }
+        }
+      },
+      {
+        type: "function",
+        function: {
+          name: "log_activity",
+          description: "Log your activity to the activity log. Use this to track what you're doing for transparency.",
+          parameters: {
+            type: "object",
+            properties: {
+              activity_type: { type: "string", description: "Type of activity (e.g., task_creation, analysis, system_check)" },
+              title: { type: "string", description: "Activity title" },
+              description: { type: "string", description: "Activity description" },
+              metadata: { type: "object", description: "Additional metadata" }
+            },
+            required: ["activity_type", "title"]
+          }
+        }
+      }
+    ];
+
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -161,6 +236,8 @@ When discussing mining stats, use these EXACT values. The XMR amounts have alrea
         messages: aiMessages,
         temperature: 0.8,
         max_tokens: 1000,
+        tools: tools,
+        tool_choice: "auto"
       }),
     });
 
@@ -198,9 +275,73 @@ When discussing mining stats, use these EXACT values. The XMR amounts have alrea
     }
 
     const data = await response.json();
-    const responseText = data.choices?.[0]?.message?.content || 'I apologize, but I could not generate a response.';
+    const message = data.choices?.[0]?.message;
 
     console.log('AI Gateway response received');
+
+    // Handle tool calls if present
+    if (message?.tool_calls && message.tool_calls.length > 0) {
+      console.log('Processing tool calls:', message.tool_calls.length);
+      const toolResults = [];
+      
+      for (const toolCall of message.tool_calls) {
+        const functionName = toolCall.function.name;
+        const functionArgs = JSON.parse(toolCall.function.arguments);
+        
+        console.log(`Executing tool: ${functionName}`, functionArgs);
+        let result;
+        
+        try {
+          switch (functionName) {
+            case 'create_task':
+              result = await handleCreateTask(functionArgs);
+              break;
+            case 'execute_task':
+              result = await handleExecuteTask(functionArgs);
+              break;
+            case 'get_mining_stats':
+              result = await handleGetMiningStats();
+              break;
+            case 'log_activity':
+              result = await handleLogActivity(functionArgs);
+              break;
+            default:
+              result = { error: `Unknown function: ${functionName}` };
+          }
+        } catch (error) {
+          console.error(`Error executing ${functionName}:`, error);
+          result = { error: error.message };
+        }
+        
+        toolResults.push({
+          tool_call_id: toolCall.id,
+          function_name: functionName,
+          result: result
+        });
+      }
+      
+      // Build a response that includes both the AI's message and tool results
+      const responseMessage = message.content || "I've executed the requested actions. Here are the results:";
+      const toolSummary = toolResults.map(tr => 
+        `\n- ${tr.function_name}: ${tr.result.success ? '✅ Success' : '❌ Failed'} ${tr.result.message || tr.result.error || ''}`
+      ).join('');
+      
+      return new Response(
+        JSON.stringify({ 
+          response: responseMessage + toolSummary,
+          tool_calls: toolResults,
+          model,
+          success: true
+        }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200 
+        }
+      );
+    }
+
+    // Normal response without tool calls
+    const responseText = message?.content || 'I apologize, but I could not generate a response.';
 
     return new Response(
       JSON.stringify({ 
@@ -227,3 +368,145 @@ When discussing mining stats, use these EXACT values. The XMR amounts have alrea
     );
   }
 });
+
+// Tool handler functions
+async function handleCreateTask(args: any) {
+  const supabaseClient = createClient(
+    Deno.env.get('SUPABASE_URL') ?? '',
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+  );
+
+  const taskId = crypto.randomUUID();
+  const { data, error } = await supabaseClient
+    .from('tasks')
+    .insert({
+      id: taskId,
+      title: args.title,
+      description: args.description,
+      category: args.task_type,
+      status: 'PENDING',
+      stage: 'planning',
+      repo: 'xmrt-dao',
+      priority: 5
+    })
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Error creating task:', error);
+    return { success: false, error: error.message };
+  }
+
+  // Log the activity
+  await supabaseClient.from('eliza_activity_log').insert({
+    activity_type: 'task_creation',
+    title: `Created task: ${args.title}`,
+    description: args.description,
+    status: 'completed',
+    metadata: { task_id: taskId, task_type: args.task_type }
+  });
+
+  return { success: true, task_id: taskId, data };
+}
+
+async function handleExecuteTask(args: any) {
+  const supabaseClient = createClient(
+    Deno.env.get('SUPABASE_URL') ?? '',
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+  );
+
+  const { data: task, error: fetchError } = await supabaseClient
+    .from('tasks')
+    .select('*')
+    .eq('id', args.task_id)
+    .single();
+
+  if (fetchError || !task) {
+    return { success: false, error: 'Task not found' };
+  }
+
+  // Update task status to IN_PROGRESS
+  const { error: updateError } = await supabaseClient
+    .from('tasks')
+    .update({ status: 'IN_PROGRESS', stage: 'executing' })
+    .eq('id', args.task_id);
+
+  if (updateError) {
+    return { success: false, error: updateError.message };
+  }
+
+  // Create task execution record
+  const executionId = crypto.randomUUID();
+  await supabaseClient.from('task_executions').insert({
+    id: executionId,
+    task_id: args.task_id,
+    status: 'running',
+    metadata: { started_at: new Date().toISOString() }
+  });
+
+  // Log the activity
+  await supabaseClient.from('eliza_activity_log').insert({
+    activity_type: 'task_execution',
+    title: `Executing task: ${task.title}`,
+    description: `Started execution of task ${args.task_id}`,
+    status: 'completed',
+    metadata: { task_id: args.task_id, execution_id: executionId }
+  });
+
+  return { 
+    success: true, 
+    task_id: args.task_id, 
+    execution_id: executionId,
+    message: 'Task execution started' 
+  };
+}
+
+async function handleGetMiningStats() {
+  const walletAddress = Deno.env.get('MINER_WALLET_ADDRESS') || 
+    '46UxNFuGM2E3UwmZWWJicaRPoRwqwW4byQkaTHkX8yPcVihp91qAVtSFipWUGJJUyTXgzSqxzDQtNLf2bsp2DX2qCCgC5mg';
+  
+  try {
+    const response = await fetch(`https://supportxmr.com/api/miner/${walletAddress}/stats`);
+    const data = await response.json();
+    
+    return {
+      success: true,
+      stats: {
+        hashrate: data.hash || 0,
+        total_hashes: data.totalHashes || 0,
+        valid_shares: data.validShares || 0,
+        amt_due: data.amtDue || 0,
+        amt_paid: data.amtPaid || 0,
+        last_hash: data.lastHash || 0,
+        wallet_address: walletAddress
+      }
+    };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+}
+
+async function handleLogActivity(args: any) {
+  const supabaseClient = createClient(
+    Deno.env.get('SUPABASE_URL') ?? '',
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+  );
+
+  const { data, error } = await supabaseClient
+    .from('eliza_activity_log')
+    .insert({
+      activity_type: args.activity_type,
+      title: args.title,
+      description: args.description || null,
+      status: 'completed',
+      metadata: args.metadata || {}
+    })
+    .select()
+    .single();
+
+  if (error) {
+    return { success: false, error: error.message };
+  }
+
+  return { success: true, data };
+}
