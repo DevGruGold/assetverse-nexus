@@ -64,18 +64,15 @@ export class LocalLLMService {
         this.notifyProgress(40);
       }
       
-      // Fallback to WASM (works on all devices including mobile)
+      // Fallback: Let library automatically use WASM (works on all devices including mobile)
       this.textGenerator = await pipeline(
         'text-generation',
-        'Xenova/distilgpt2',
-        {
-          device: 'wasm',
-          dtype: 'fp32',
-        }
+        'Xenova/distilgpt2'
+        // No device parameter - library automatically uses WASM when WebGPU unavailable
       );
       
       this.notifyProgress(100);
-      console.log('✅ Local LLM model loaded with WASM');
+      console.log('✅ Local LLM model loaded (automatic WASM fallback)');
       
     } catch (error) {
       console.error('❌ Failed to load local LLM model:', error);
