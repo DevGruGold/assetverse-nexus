@@ -97,12 +97,38 @@ Keep responses concise, clear, and actionable. Reference your infrastructure kno
     // Add context if provided
     if (context?.miningStats) {
       const stats = context.miningStats;
-      systemPrompt += `\n\nCurrent Mining Context:
-- Hashrate: ${stats.hash || 0} H/s
-- Total Hashes: ${stats.totalHashes || 0}
-- Valid Shares: ${stats.validShares || 0}
-- Amount Due: ${stats.amtDue || '0'} XMR
-- Amount Paid: ${stats.amtPaid || '0'} XMR`;
+      
+      // Helper functions for proper formatting
+      const formatHashrate = (hashrate: number): string => {
+        if (hashrate >= 1000000) return `${(hashrate / 1000000).toFixed(2)} MH/s`;
+        if (hashrate >= 1000) return `${(hashrate / 1000).toFixed(2)} KH/s`;
+        return `${hashrate.toFixed(2)} H/s`;
+      };
+      
+      const formatXMR = (atomicUnits: string): string => {
+        const num = parseFloat(atomicUnits || '0');
+        return (num / 1000000000000).toFixed(6); // Convert from atomic units
+      };
+      
+      const lastHashTime = stats.lastHash ? Math.floor((Date.now() / 1000) - stats.lastHash) : null;
+      const isOnline = lastHashTime !== null && lastHashTime < 300;
+      const statusText = stats.status === 'demo' ? 'Demo Data' : 
+                        stats.status === 'inactive' ? 'Inactive' :
+                        isOnline ? 'Mining (Online)' : 'Idle (Offline)';
+      
+      systemPrompt += `\n\n## Current Mining Statistics (Live Data from SupportXMR Pool):
+- **Status**: ${statusText}
+- **Current Hashrate**: ${formatHashrate(stats.hash || 0)}
+- **Total Hashes**: ${(stats.totalHashes || 0).toLocaleString()}
+- **Valid Shares Submitted**: ${(stats.validShares || 0).toLocaleString()}
+- **Invalid Shares**: ${stats.invalidShares || 0}
+- **XMR Balance Due**: ${formatXMR(stats.amtDue)} XMR (pending payment)
+- **XMR Already Paid**: ${formatXMR(stats.amtPaid)} XMR (completed transactions)
+- **Payment Count**: ${stats.txnCount || 0} payments${lastHashTime !== null ? `
+- **Last Active**: ${lastHashTime < 60 ? 'Less than a minute ago' : lastHashTime < 3600 ? `${Math.floor(lastHashTime / 60)} minutes ago` : `${Math.floor(lastHashTime / 3600)} hours ago`}` : ''}${stats.walletAddress ? `
+- **Wallet Address**: ${stats.walletAddress}` : ''}
+
+When discussing mining stats, use these EXACT values. The XMR amounts have already been converted from atomic units.`;
     }
 
     if (context?.userContext) {
