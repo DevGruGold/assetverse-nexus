@@ -44,42 +44,43 @@ export class LocalLLMService {
       console.log('🤖 Loading local LLM model...');
       this.notifyProgress(10);
       
-      // Use a small, efficient model that can run in browser
-      // DistilGPT-2 is a good balance of size and capability
-      this.notifyProgress(30);
-      this.textGenerator = await pipeline(
-        'text-generation',
-        'distilgpt2',
-        {
-          device: 'webgpu', // Use WebGPU if available, fallback to CPU
-          dtype: 'fp16', // Use half precision for better performance
-        }
-      );
-      
-      this.notifyProgress(100);
-      console.log('✅ Local LLM model loaded successfully');
-    } catch (error) {
-      console.warn('⚠️ WebGPU not available, falling back to CPU');
-      this.notifyProgress(40);
-      
+      // Try WebGPU first for best performance
       try {
-        // Fallback to CPU if WebGPU fails
+        this.notifyProgress(30);
         this.textGenerator = await pipeline(
           'text-generation',
-          'distilgpt2',
+          'Xenova/distilgpt2',
           {
-            device: 'cpu',
-            dtype: 'fp32',
+            device: 'webgpu',
+            dtype: 'fp16',
           }
         );
         
         this.notifyProgress(100);
-        console.log('✅ Local LLM model loaded on CPU');
-      } catch (cpuError) {
-        console.error('❌ Failed to load local LLM model:', cpuError);
-        this.notifyProgress(0);
-        throw cpuError;
+        console.log('✅ Local LLM model loaded with WebGPU');
+        return;
+      } catch (webgpuError) {
+        console.warn('⚠️ WebGPU not available, falling back to WASM');
+        this.notifyProgress(40);
       }
+      
+      // Fallback to WASM (works on all devices including mobile)
+      this.textGenerator = await pipeline(
+        'text-generation',
+        'Xenova/distilgpt2',
+        {
+          device: 'wasm',
+          dtype: 'fp32',
+        }
+      );
+      
+      this.notifyProgress(100);
+      console.log('✅ Local LLM model loaded with WASM');
+      
+    } catch (error) {
+      console.error('❌ Failed to load local LLM model:', error);
+      this.notifyProgress(0);
+      throw error;
     }
   }
 
