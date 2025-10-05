@@ -1,10 +1,12 @@
-# XMRT DAO - Decentralized Mobile Mining Ecosystem
+# XMRT DAO - AI-Powered Mobile Monero Mining Platform
 
 [![Deploy Status](https://img.shields.io/website?url=https%3A%2F%2Fxmrtdao.vercel.app)](https://xmrtdao.vercel.app)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-1.0.0-green.svg)](package.json)
+[![Version](https://img.shields.io/badge/version-2.0.0-green.svg)](package.json)
+[![Mining Pool](https://img.shields.io/badge/pool-SupportXMR-orange.svg)](https://supportxmr.com)
+[![Powered By](https://img.shields.io/badge/AI-Lovable%20%2B%20Gemini-blue.svg)](https://lovable.dev)
 
-> **XMRT DAO** is a revolutionary decentralized autonomous organization focused on democratizing cryptocurrency mining through mobile devices and building a sustainable privacy-first mesh network.
+> **XMRT DAO** revolutionizes cryptocurrency mining by enabling mobile devices to mine Monero (XMR) with AI assistance, real-time pool statistics, and community-driven governance. Mine privacy-first cryptocurrency on your phone with intelligent optimization and transparent earnings tracking.
 
 ## 🌐 Live Application
 
@@ -16,12 +18,40 @@ XMRT DAO represents the convergence of mobile computing, blockchain technology, 
 
 ### 🎯 Core Features
 
-- **📱 Mobile Mining Interface**: Optimized for ARM processors with battery and thermal management
-- **🔴 Live Mining Statistics**: Real-time data from SupportXMR pool integration
-- **🤖 AI-Powered Assistant**: Integrated chat interface for mining guidance and support
-- **💰 Mining Calculator**: Accurate profitability calculations for mobile mining
-- **🗳️ DAO Governance**: Decentralized decision-making platform
-- **🔐 Privacy-First Design**: Built with Monero's privacy principles in mind
+#### 🤖 AI-Powered Intelligence
+- **Eliza AI Assistant**: Conversational AI powered by Lovable AI Gateway + Google Gemini 2.5 Flash
+- **Real-time Context**: Eliza has full knowledge of your mining statistics, wallet balance, and pool performance
+- **Smart Insights**: Automatically analyzes efficiency, profitability, and provides actionable recommendations
+- **Multi-modal Understanding**: Text, voice, and visual inputs for seamless interaction
+- **Autonomous Decision Making**: Integration with task management and automated workflow systems
+
+#### 📱 Mobile Mining Excellence
+- **ARM Processor Optimization**: Native support for mobile CPU architectures
+- **Intelligent Thermal Management**: Prevents overheating with dynamic throttling
+- **Battery Preservation**: Smart power management for extended mining sessions
+- **Background Mining**: Continues operation even with screen off
+- **Multi-worker Support**: Manage multiple mining devices from single interface
+
+#### 🔴 Live Pool Integration
+- **SupportXMR Connection**: Direct API integration with pool.supportxmr.com:3333
+- **Real-time Statistics**: Live hashrate, worker count, shares submitted, and earnings
+- **Payment Tracking**: Automatic balance updates with transaction history
+- **Pool Analytics**: Historical performance charts and network difficulty tracking
+
+#### 💰 Profitability Tools
+- **Live Calculator**: Real-time profitability based on your device's hashrate
+- **Cost Analysis**: Factor in electricity costs for accurate profit projections
+- **ROI Estimator**: Calculate return on investment for mining operations
+
+#### 🗳️ DAO Governance
+- **Democratic Voting**: Token-weighted governance for platform decisions
+- **Proposal System**: Submit and vote on improvement proposals
+- **Treasury Management**: Community-controlled fund allocation
+
+#### 🔐 Privacy & Security
+- **Monero Principles**: Built on privacy-preserving cryptocurrency foundation
+- **Non-custodial**: You control your wallet and earnings at all times
+- **Encrypted Communication**: End-to-end encryption for sensitive data
 
 ## 📊 Live Mining Integration
 
@@ -35,25 +65,100 @@ The platform integrates with **pool.supportxmr.com:3333** to provide:
 
 **Mining Wallet**: `46UxNFuGM2E3UwmZWWJicaRPoRwqwW4byQkaTHkX8yPcVihp91qAVtSFipWUGJJUyTXgzSqxzDQtNLf2bsp2DX2qCCgC5mg`
 
+## 🤖 Meet Eliza - Your AI Mining Assistant
+
+**Eliza** is an advanced AI chatbot built into XMRT DAO that serves as your personal mining assistant, data analyst, and blockchain expert.
+
+### Eliza's Capabilities
+
+#### 🧠 Full System Knowledge
+- **Complete Infrastructure Awareness**: Eliza understands all 24 Supabase database tables, edge functions, and scheduled jobs
+- **Real-time Mining Data**: Direct access to your live SupportXMR statistics including hashrate, earnings, and worker status
+- **User Context**: Recognizes your session, preferences, and interaction patterns
+- **Technical Expertise**: Deep knowledge of Monero mining, blockchain technology, and the XMRT ecosystem
+
+#### 💬 Conversational Intelligence
+- **Natural Language**: Ask questions in plain English about mining, earnings, or technical topics
+- **Context-Aware**: Remembers conversation history and provides continuity across sessions
+- **Multi-format Responses**: Delivers information as text, tables, charts, or actionable insights
+- **Proactive Suggestions**: Offers recommendations based on your mining performance
+
+#### 📊 Data Analysis
+- **Mining Performance**: Analyzes your hashrate efficiency, share validity, and earnings trends
+- **Profitability Insights**: Calculates ROI, estimates daily/monthly earnings, and factors costs
+- **Pool Statistics**: Explains network difficulty, pool hashrate, and block reward data
+- **Optimization Tips**: Suggests improvements for better mining performance
+
+#### 🔧 Technical Support
+- **Troubleshooting**: Helps diagnose mining issues, connection problems, or performance drops
+- **Setup Guidance**: Walks you through wallet configuration, pool connection, and mining setup
+- **Best Practices**: Educates on thermal management, battery optimization, and efficient mining
+- **DAO Operations**: Explains governance proposals, voting mechanisms, and treasury management
+
+### How Eliza Works
+
+1. **Powered by Lovable AI Gateway**: Uses Google Gemini 2.5 Flash model with free tier access
+2. **Supabase Edge Function**: `ai-chat` function processes requests with full context injection
+3. **Real-time Data Integration**: Fetches live mining stats from `unifiedDataService`
+4. **Fallback System**: Local LLM (Qwen2.5-0.5B) provides offline capability
+5. **Conversation Persistence**: All chats stored in Supabase for continuity
+
+### Example Conversations
+
+**"What are my current mining stats?"**
+> *"You're currently mining at 625 H/s on the SupportXMR pool. You've submitted 120,440 valid shares with 0 invalid shares (100% efficiency). Your pending balance is 0.008142 XMR with 0 XMR already paid out across 0 transactions. Last hash was submitted 2 minutes ago - you're actively mining!"*
+
+**"Is mobile mining profitable?"**
+> *"Based on your 625 H/s hashrate, you'll earn approximately 0.00156 XMR per day ($0.23 at current prices). After electricity costs (~$0.05/day), your daily profit is around $0.18. Monthly profit: $5.40. Profitability increases with XMR price appreciation and lower energy costs."*
+
+**"How do I optimize battery life while mining?"**
+> *"Here are smart strategies for battery preservation: 1) Mine only while plugged in, 2) Use thermal throttling to prevent overheating, 3) Reduce screen brightness or turn off display, 4) Enable battery optimization in settings, 5) Schedule mining during off-peak hours. XMRT's built-in thermal management automatically adjusts hashrate to protect your device."*
+
+### Privacy & Security
+
+- ✅ **No Personal Data Stored**: Conversations use session-based identifiers, not personal info
+- ✅ **Encrypted Communication**: All AI requests use HTTPS and secure Supabase connections
+- ✅ **Local Processing Available**: Offline LLM mode keeps data on your device
+- ✅ **Row-Level Security**: Supabase RLS policies protect your data
+- ✅ **Open Source**: Full transparency - review the code on GitHub
+
 ## 🛠️ Technology Stack
 
-### Frontend
-- **React 18** with TypeScript
-- **Vite** for fast development and building
-- **Tailwind CSS** for responsive design
-- **shadcn/ui** components for consistent UI
-- **Recharts** for data visualization
+### Frontend Framework
+- **React 18** with TypeScript for type-safe component development
+- **Vite** for lightning-fast development and optimized production builds
+- **Tailwind CSS** for utility-first responsive design
+- **shadcn/ui** component library for consistent, accessible UI
+- **Recharts** for real-time data visualization and mining charts
+- **Lucide React** for beautiful, consistent iconography
 
-### Blockchain Integration
-- **Web3 React** for wallet connectivity
-- **Wagmi** for Ethereum interactions
-- **Supabase** for data persistence
-- **SupportXMR API** for live mining data
+### AI & Backend Infrastructure
+- **Lovable AI Gateway** - Primary AI service with free tier access
+- **Google Gemini 2.5 Flash** - Advanced language model for Eliza AI
+- **Supabase Edge Functions** - Serverless API for mining proxy and AI chat
+- **Supabase Database** - PostgreSQL with Row Level Security
+- **Supabase Storage** - Secure file storage for user data
+- **Local LLM Support** - Offline AI capabilities with Qwen2.5-0.5B
 
-### Development Tools
-- **ESLint** and **TypeScript** for code quality
-- **Bun** for package management
-- **Vercel** for deployment
+### Blockchain & Mining Integration
+- **SupportXMR API** - Real-time mining statistics from pool.supportxmr.com:3333
+- **Monero (XMR)** - Privacy-first cryptocurrency mining
+- **Web3 React** & **Wagmi** - Blockchain wallet connectivity
+- **Custom Mining Proxy** - Enhanced pool communication with retry logic
+
+### Data & Services
+- **Conversation Persistence** - Supabase-based chat history storage
+- **Context Management** - Session-based user context and preferences
+- **Autonomous Task System** - Automated workflow execution
+- **GitHub Integration** - Repository management and autonomous operations
+- **Web Automation** - Playwright-based browser automation
+
+### Development & Deployment
+- **TypeScript** - Full type safety across frontend and backend
+- **ESLint** - Code quality and consistency enforcement
+- **Bun** - Fast package management and task running
+- **Vercel** - Production deployment with automatic CI/CD
+- **GitHub Actions** - Automated testing and deployment pipelines
 
 ## 🏗️ Getting Started
 
@@ -206,23 +311,37 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 📈 Roadmap
 
-### Q1 2025
-- [ ] Enhanced mobile mining optimization
-- [ ] Advanced DAO governance features
-- [ ] Multi-pool support integration
-- [ ] Mobile app development
+### Q1 2025 ✅ COMPLETED
+- [x] Lovable AI Gateway integration for free AI access
+- [x] Google Gemini 2.5 Flash AI model implementation
+- [x] Real-time SupportXMR pool integration
+- [x] AI assistant Eliza with full mining context
+- [x] Supabase backend with edge functions
+- [x] Comprehensive conversation persistence
+- [x] Mobile-optimized responsive design
 
-### Q2 2025
+### Q2 2025 🚧 IN PROGRESS
+- [ ] Enhanced Eliza AI capabilities (vision, voice, multi-modal)
+- [ ] Advanced DAO governance dashboard
+- [ ] Multi-pool support (additional Monero pools)
+- [ ] Native mobile app (React Native)
+- [ ] Worker management interface
+- [ ] Advanced analytics and reporting
+
+### Q3 2025 📋 PLANNED
 - [ ] Mesh network protocol implementation
-- [ ] Advanced privacy features
-- [ ] Cross-platform compatibility
+- [ ] Hardware wallet integration
+- [ ] Cross-platform desktop app (Electron)
+- [ ] Mining hardware recommendations engine
 - [ ] Educational content platform
+- [ ] Community-driven plugin marketplace
 
-### Q3 2025
-- [ ] Hardware partnership program
+### Q4 2025 🔮 FUTURE
 - [ ] Enterprise mining solutions
-- [ ] Advanced analytics dashboard
-- [ ] Community marketplace
+- [ ] Mining pool hosting service
+- [ ] Advanced privacy features (Tor integration)
+- [ ] Hardware partnership program
+- [ ] Carbon offset tracking for sustainable mining
 
 ---
 
