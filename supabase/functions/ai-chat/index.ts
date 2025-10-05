@@ -414,9 +414,47 @@ When discussing mining stats, use these EXACT values. The XMR amounts have alrea
       
       // Build a response that includes both the AI's message and tool results
       const responseMessage = message.content || "I've executed the requested actions. Here are the results:";
-      const toolSummary = toolResults.map(tr => 
-        `\n- ${tr.function_name}: ${tr.result.success ? '✅ Success' : '❌ Failed'} ${tr.result.message || tr.result.error || ''}`
-      ).join('');
+      
+      // Format tool results with actual data
+      const toolSummary = toolResults.map(tr => {
+        const result = tr.result;
+        let summary = `\n\n**${tr.function_name}**: ${result.success ? '✅ Success' : '❌ Failed'}`;
+        
+        // Add data-specific formatting for query functions
+        if (result.success) {
+          if (result.tasks) {
+            summary += `\n\nFound ${result.count} task(s):\n${result.tasks.map((t: any) => 
+              `- [${t.status}] ${t.title} (Priority: ${t.priority}, Stage: ${t.stage})`
+            ).join('\n')}`;
+          } else if (result.logs) {
+            summary += `\n\nFound ${result.count} log(s):\n${result.logs.map((l: any) => 
+              `- [${l.activity_type}] ${l.title} - ${l.status || 'completed'}`
+            ).join('\n')}`;
+          } else if (result.agents) {
+            summary += `\n\nFound ${result.count} agent(s):\n${result.agents.map((a: any) => 
+              `- ${a.name} (${a.role}) - Status: ${a.status}`
+            ).join('\n')}`;
+          } else if (result.messages) {
+            summary += `\n\nFound ${result.count} message(s):\n${result.messages.map((m: any) => 
+              `- [${m.message_type}] ${m.content.substring(0, 100)}...`
+            ).join('\n')}`;
+          } else if (result.repos) {
+            summary += `\n\nFound ${result.count} repo(s):\n${result.repos.map((r: any) => 
+              `- ${r.name} (${r.category}) - Exists: ${r.repo_exists}`
+            ).join('\n')}`;
+          } else if (result.stats) {
+            summary += `\n\nMining Stats:\n- Hashrate: ${result.stats.hashrate} H/s\n- Valid Shares: ${result.stats.valid_shares}\n- Amount Due: ${result.stats.amt_due}`;
+          } else if (result.data) {
+            summary += `\n\nData: ${JSON.stringify(result.data, null, 2)}`;
+          } else if (result.message) {
+            summary += ` - ${result.message}`;
+          }
+        } else if (result.error) {
+          summary += ` - Error: ${result.error}`;
+        }
+        
+        return summary;
+      }).join('\n');
       
       return new Response(
         JSON.stringify({ 
