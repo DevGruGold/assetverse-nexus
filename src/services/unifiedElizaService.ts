@@ -3,6 +3,7 @@ import { unifiedDataService, type MiningStats, type UserContext } from './unifie
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { apiKeyManager } from './apiKeyManager';
 import { autonomousTaskService } from './autonomousTaskService';
+import { supabase } from '@/integrations/supabase/client';
 
 // Enhanced interfaces with new capabilities
 export interface ElizaContext {
@@ -42,7 +43,54 @@ export class UnifiedElizaService {
   private static playwrightBrowser: any = null; // Playwright browser instance
   private static githubService: any = null; // GitHub service instance
 
-  // Initialize Gemini AI with enhanced API key management
+  // Call Lovable AI Gateway via edge function (PRIMARY METHOD)
+  private static async callLovableAI(
+    input: string,
+    context: ElizaContext
+  ): Promise<{ success: boolean; response?: string; error?: string; fallback?: boolean }> {
+    try {
+      console.log('🚀 Calling Lovable AI Gateway...');
+
+      const { data, error } = await supabase.functions.invoke('ai-chat', {
+        body: {
+          messages: [
+            { role: 'user', content: input }
+          ],
+          context: {
+            miningStats: context.miningStats,
+            userContext: context.userContext,
+          },
+          model: 'google/gemini-2.5-flash' // Default to free Gemini model
+        }
+      });
+
+      if (error) {
+        console.error('❌ Lovable AI Gateway error:', error);
+        return { success: false, error: error.message, fallback: true };
+      }
+
+      if (data?.fallback) {
+        console.warn('⚠️ AI Gateway returned fallback flag');
+        return { success: false, error: data.error, fallback: true };
+      }
+
+      if (data?.response) {
+        console.log('✅ Lovable AI Gateway response received');
+        return { success: true, response: data.response };
+      }
+
+      return { success: false, error: 'No response from AI Gateway', fallback: true };
+    } catch (error) {
+      console.error('❌ Error calling Lovable AI Gateway:', error);
+      return { 
+        success: false, 
+        error: error instanceof Error ? error.message : 'Unknown error',
+        fallback: true
+      };
+    }
+  }
+
+  // Initialize Gemini AI with enhanced API key management (FALLBACK METHOD)
   private static async initializeGemini(): Promise<{ success: boolean; geminiAI?: GoogleGenerativeAI; error?: string; errorType?: string }> {
     if (this.geminiAI) {
       return { success: true, geminiAI: this.geminiAI };
@@ -281,7 +329,7 @@ export class UnifiedElizaService {
       ? ` I can still help you with ${capabilities.join(', ')} and provide information from our knowledge base.`
       : '';
 
-    return `I'm currently unable to access my full AI capabilities due to API limitations. However, I can still provide valuable information from our knowledge base and real-time mining data.${capabilityText}
+    return `I'm currently experiencing connectivity issues with the AI services. However, I can still provide valuable information from our knowledge base and real-time mining data.${capabilityText}
 
 🔧 **Available Capabilities:**
 - Mining statistics and analysis
@@ -291,7 +339,7 @@ ${context.enableWebAutomation ? '- Web automation and scraping' : ''}
 ${context.enableGitHubOps ? '- Repository management and analysis' : ''}
 ${context.enableBrowsing ? '- Web research and data collection' : ''}
 
-💡 **Local AI Assistant**: I'm also loading a local AI model that will provide better responses without requiring API keys. This may take a moment to initialize.
+💡 **Local AI Assistant**: I'm also loading a local AI model (Qwen2.5-0.5B) that will provide better responses offline. This may take a moment to initialize.
 
 Feel free to ask about mining performance, blockchain technology, or any XMRT-related topics!`;
   }
@@ -354,36 +402,52 @@ Feel free to ask about mining performance, blockchain technology, or any XMRT-re
         };
       }
 
-      // Initialize enhanced Gemini AI
-      const geminiResult = await this.initializeGemini();
+      // PRIMARY: Try Lovable AI Gateway first (free Gemini models)
+      const lovableResult = await this.callLovableAI(input, { 
+        ...context, 
+        miningStats, 
+        userContext 
+      });
 
-      // If Gemini is not available, try local LLM for user input
-      if (!geminiResult.success) {
-        console.warn('⚠️ Gemini unavailable, trying local LLM for user input...');
+      if (lovableResult.success && lovableResult.response) {
+        console.log('✅ Response from Lovable AI Gateway');
+        return {
+          response: lovableResult.response,
+          shouldSpeak: context.shouldSpeak,
+          context: { ...context, miningStats, userContext }
+        };
+      }
+
+      console.warn('⚠️ Lovable AI unavailable, trying fallback methods...');
+
+      // FALLBACK 1: Try local LLM
+      try {
+        const { localLLMService } = await import('./localLLMService');
         
-        try {
-          const { localLLMService } = await import('./localLLMService');
+        if (localLLMService.isReady()) {
+          console.log('🤖 Using local LLM for response...');
+          const localResponse = await localLLMService.generateXMRTResponse(input, {
+            miningStats,
+            userContext
+          });
           
-          if (localLLMService.isReady()) {
-            console.log('🤖 Using local LLM for user input processing...');
-            const localResponse = await localLLMService.generateXMRTResponse(input, {
-              miningStats,
-              userContext
-            });
-            
-            return {
-              response: localResponse,
-              shouldSpeak: context.shouldSpeak,
-              context: { ...context, miningStats, userContext }
-            };
-          } else if (!localLLMService.isLoading()) {
-            console.log('🔄 Initializing local LLM for user input...');
-            localLLMService.initialize().catch(console.error);
-          }
-        } catch (error) {
-          console.warn('⚠️ Local LLM not available for user input:', error);
+          return {
+            response: localResponse,
+            shouldSpeak: context.shouldSpeak,
+            context: { ...context, miningStats, userContext }
+          };
+        } else if (!localLLMService.isLoading()) {
+          console.log('🔄 Initializing local LLM...');
+          localLLMService.initialize().catch(console.error);
         }
-        
+      } catch (error) {
+        console.warn('⚠️ Local LLM not available:', error);
+      }
+
+      // FALLBACK 2: Try direct Gemini (if user has API key)
+      const geminiResult = await this.initializeGemini();
+      
+      if (!geminiResult.success) {
         const fallbackResponse = await this.generateEnhancedFallbackResponse(context);
         return {
           response: fallbackResponse,

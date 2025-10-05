@@ -1,4 +1,7 @@
 project_id = "vawouugtzwmejxqkeqqj"
 
+[functions.ai-chat]
+verify_jwt = false
+
 [functions.github-autonomous]
 verify_jwt = false
