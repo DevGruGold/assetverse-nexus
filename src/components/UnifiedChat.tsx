@@ -704,34 +704,31 @@ const UnifiedChatInner: React.FC<UnifiedChatProps> = ({
   return (
     <Card className={`bg-card/50 backdrop-blur-sm border border-border/50 flex flex-col h-[500px] sm:h-[600px] ${className}`}>
       {/* Simplified Header */}
-      <div className="p-4 border-b border-border/50">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
+      <div className="p-3 sm:p-4 border-b border-border/50">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
             <AdaptiveAvatar
               apiKey={apiKey}
-              className="h-8 w-8 sm:h-10 sm:w-10"
+              className="h-8 w-8 sm:h-10 sm:w-10 flex-shrink-0"
               size="sm"
               enableVoice={voiceEnabled}
             />
-            <div>
-              <h3 className="font-semibold text-foreground text-sm sm:text-base">Eliza AI</h3>
-              <p className="text-xs text-muted-foreground">Your XMRT Assistant</p>
-            </div>
-            <div className="ml-2">
-              <LocalLLMStatus />
+            <div className="min-w-0 flex-1">
+              <h3 className="font-semibold text-foreground text-sm sm:text-base truncate">Eliza AI</h3>
+              <p className="text-xs text-muted-foreground truncate">Your XMRT Assistant</p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
             {/* API Key Button */}
             <Button
               onClick={() => setShowAPIKeyInput(true)}
               variant="ghost"
               size="sm"
-              className={needsAPIKey ? 'text-orange-500 animate-pulse' : 'text-muted-foreground'}
+              className={`h-8 w-8 sm:h-9 sm:w-9 p-0 ${needsAPIKey ? 'text-orange-500 animate-pulse' : 'text-muted-foreground'}`}
               title="Add or update Gemini API key"
             >
-              <Key className="h-4 w-4" />
+              <Key className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
             </Button>
             
             {/* Clear Conversation Button */}
@@ -740,10 +737,10 @@ const UnifiedChatInner: React.FC<UnifiedChatProps> = ({
                 onClick={handleClearConversation}
                 variant="ghost"
                 size="sm"
-                className="text-muted-foreground hover:text-destructive"
+                className="h-8 w-8 sm:h-9 sm:w-9 p-0 text-muted-foreground hover:text-destructive hidden sm:flex"
                 title="Clear conversation history"
               >
-                <Trash2 className="h-4 w-4" />
+                <Trash2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
               </Button>
             )}
             
@@ -752,11 +749,17 @@ const UnifiedChatInner: React.FC<UnifiedChatProps> = ({
               onClick={toggleVoiceSynthesis}
               variant="ghost"
               size="sm"
-              className={voiceEnabled ? 'text-primary' : 'text-muted-foreground'}
+              className={`h-8 w-8 sm:h-9 sm:w-9 p-0 ${voiceEnabled ? 'text-primary' : 'text-muted-foreground'}`}
+              title={voiceEnabled ? 'Disable voice' : 'Enable voice'}
             >
-              {voiceEnabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
+              {voiceEnabled ? <Volume2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> : <VolumeX className="h-3.5 w-3.5 sm:h-4 sm:w-4" />}
             </Button>
           </div>
+        </div>
+        
+        {/* LocalLLMStatus moved below header on mobile */}
+        <div className="mt-2 sm:hidden">
+          <LocalLLMStatus />
         </div>
       </div>
 

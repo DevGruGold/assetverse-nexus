@@ -81,11 +81,11 @@ export const LocalLLMStatus: React.FC = () => {
 
         <div className="text-xs text-muted-foreground">
           {isReady ? (
-            "Local AI model loaded successfully. Works offline on any device!"
+            "Qwen2.5-0.5B model ready. Works offline on any device!"
           ) : isLoading ? (
-            "Downloading DistilGPT-2 model (~80MB). Works on mobile via WASM..."
+            "Loading Qwen2.5-0.5B model (~500MB). Optimized for mobile..."
           ) : (
-            "Initialize local AI for offline responses on any device."
+            "Initialize local AI for offline responses. Fast & mobile-friendly."
           )}
         </div>
 
